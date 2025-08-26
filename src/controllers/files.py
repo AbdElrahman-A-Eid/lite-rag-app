@@ -112,7 +112,7 @@ class FileController(BaseController):
                     await out_file.write(chunk)
 
             self.logger.info("Successfully uploaded file at: %s", file_path)
-            return True, ""
+            return True, file_id
 
         except Exception as e:
             error_msg = ResponseSignals.FILE_UPLOAD_FAILED.value
