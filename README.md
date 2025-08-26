@@ -76,12 +76,17 @@ pip install -r requirements.txt
 
 ```
 lite-rag-app/
-├── assets/              # Static assets and resources
-├── .env.example         # Environment variables template
-├── .gitignore          # Git ignore file
-├── requirements.txt     # Python dependencies
-├── README.md           # Project documentation
-└── LICENSE             # MIT License
+├── src/                 # Main application source code
+│   ├── assets/          # Static assets and resources
+│   ├── routes/          # API route definitions
+│   │   └── base.py      # Base route definitions
+│   ├── .env.example     # Environment variables template
+│   ├── .gitignore       # Git ignore file
+│   ├── config.py        # Application configuration
+│   ├── main.py          # Application entry point
+│   └── requirements.txt # Python dependencies
+├── LICENSE              # MIT License
+└── README.md            # Project documentation
 ```
 
 ## Usage
