@@ -2,16 +2,9 @@
 Main application script for Lite-RAG-App
 """
 
-from typing import Dict
 from fastapi import FastAPI
+from routes.base import base_router
 
 app = FastAPI()
 
-@app.get("/health")
-async def health_check() -> Dict[str, str]:
-    """Health check endpoint
-
-    Returns:
-        dict: Health status
-    """
-    return {"status": "ok"}
+app.include_router(base_router)
