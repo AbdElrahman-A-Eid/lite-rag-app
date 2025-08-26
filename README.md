@@ -76,22 +76,47 @@ pip install -r requirements.txt
 
 ```
 lite-rag-app/
-├── src/                 # Main application source code
-│   ├── assets/          # Static assets and resources
-│   ├── routes/          # API route definitions
-│   │   └── base.py      # Base route definitions
-│   ├── .env.example     # Environment variables template
-│   ├── .gitignore       # Git ignore file
-│   ├── config.py        # Application configuration
-│   ├── main.py          # Application entry point
-│   └── requirements.txt # Python dependencies
-├── LICENSE              # MIT License
-└── README.md            # Project documentation
+├── src/                     # Main application source code
+│   ├── assets/              # Static assets and resources
+│   ├── controllers/         # Business logic controllers
+│   │   ├── __init__.py      # Controllers module initialization
+│   │   ├── base.py          # Base controller class
+│   │   ├── documents.py     # Document processing controller
+│   │   ├── files.py         # File management controller
+│   │   └── projects.py      # Project management controller
+│   ├── models/              # Data models and enums
+│   │   ├── enums/           # Application enumerations
+│   │   │   ├── __init__.py  # Enums module initialization
+│   │   │   ├── documents.py # Document-related enums
+│   │   │   ├── log_level.py # Logging level enums
+│   │   │   └── responses.py # Response signal enums
+│   │   └── __init__.py      # Models module initialization
+│   ├── routes/              # API route definitions
+│   │   ├── schemas/         # Pydantic request/response schemas
+│   │   │   ├── __init__.py  # Schemas module initialization
+│   │   │   ├── documents.py # Document-related schemas
+│   │   │   ├── files.py     # File-related schemas
+│   │   │   └── projects.py  # Project-related schemas
+│   │   ├── __init__.py      # Routes module initialization
+│   │   ├── base.py          # Base route definitions
+│   │   ├── documents.py     # Document-related routes
+│   │   ├── files.py         # File-related routes
+│   │   └── projects.py      # Project-related routes
+│   ├── .env.example         # Environment variables template
+│   ├── .gitignore           # Git ignore file
+│   ├── config.py            # Application configuration
+│   ├── main.py              # Application entry point
+│   └── requirements.txt     # Python dependencies
+├── LICENSE                  # MIT License
+└── README.md                # Project documentation
 ```
 
 ## Usage
 
 *Coming soon - usage instructions will be added as the project develops*
+
+## Future Work
+   - Add support for local [Unstructured Loader](https://python.langchain.com/docs/integrations/document_loaders/unstructured_file/)
 
 ## License
 
