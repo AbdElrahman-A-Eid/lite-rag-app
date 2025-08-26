@@ -25,6 +25,9 @@ class ProjectController(BaseController):
         """
         project_id = str(uuid4())
         project_dir = self.files_dir / project_id
+        while project_dir.exists():
+            project_id = str(uuid4())
+            project_dir = self.files_dir / project_id
         try:
             project_dir.mkdir(parents=True, exist_ok=True)
             self.logger.info("Created new project with ID: %s", project_id)
