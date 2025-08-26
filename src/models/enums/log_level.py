@@ -1,5 +1,5 @@
 """
-Common base models for the application.
+Enumerations for log levels.
 """
 
 import logging
@@ -34,13 +34,3 @@ class LogLevel(str, Enum):
             self.FATAL: logging.FATAL,
             self.NOTSET: logging.NOTSET,
         }.get(self, logging.NOTSET)
-
-
-class ResponseSignals(str, Enum):
-    """Enumeration for response signals."""
-
-    FILE_UPLOAD_FAILED = "File Upload Failed"
-    NO_FILE_PROVIDED = "No File Provided"
-    UNSUPPORTED_FILE_TYPE = "Unsupported File Type"
-    FILE_TOO_LARGE = "File Too Large"
-    FILE_VALIDATION_ERROR = "File Validation Error"
