@@ -5,7 +5,7 @@ Configuration settings for Lite-RAG-App
 import logging
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-from pydantic import Field
+from pydantic import Field, AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from models import LogLevel
 
@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     files_supported_types: list[str]
     files_max_size_mb: int = Field(ge=0, default=20)
     files_default_chunk_size_kb: int = Field(ge=0, default=512)
+
+    mongo_uri: AnyUrl
+    mongo_db_name: str
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="RAG_")
 
