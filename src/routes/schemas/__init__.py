@@ -8,4 +8,8 @@ from routes.schemas.documents import (
     ChunkResponse,
 )
 from routes.schemas.files import FileUploadResponse
-from routes.schemas.projects import ProjectCreationResponse, ProjectListResponse
+from routes.schemas.projects import (
+    ProjectCreationResponse,
+    ProjectListResponse,
+    ProjectCreationRequest,
+)
