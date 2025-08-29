@@ -7,7 +7,7 @@ from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from pydantic import Field, AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from models import LogLevel
+from models.enums import LogLevel
 
 
 class Settings(BaseSettings):

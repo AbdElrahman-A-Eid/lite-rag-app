@@ -9,7 +9,7 @@ from langchain_core.document_loaders import BaseLoader
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from controllers.base import BaseController
-from models import DocumentFileType
+from models.enums import DocumentFileType
 
 
 class DocumentController(BaseController):
@@ -81,6 +81,7 @@ class DocumentController(BaseController):
                 self.logger.error(
                     "Failed to load file at %s: %s", file_path, str(e), exc_info=True
                 )
+        return None
 
     def process_file(
         self, file_id: str, chunk_size: int, chunk_overlap: int
@@ -105,3 +106,4 @@ class DocumentController(BaseController):
                 texts=file_texts, metadatas=file_metadatas
             )
             return chunks
+        return None

@@ -8,7 +8,7 @@ from uuid import uuid4
 from fastapi import UploadFile
 import aiofiles
 from controllers.base import BaseController
-from models import ResponseSignals
+from models.enums import ResponseSignals
 
 
 class FileController(BaseController):
