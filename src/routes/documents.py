@@ -2,11 +2,14 @@
 API routes for document-related operations.
 """
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
+from pymongo.asynchronous.database import AsyncDatabase
 from controllers import DocumentController
 from routes.schemas import DocumentProcessingRequest, DocumentProcessingResponse
-from models import ResponseSignals
+from models import DocumentChunk, DocumentChunkModel
+from models.enums import ResponseSignals
+from dependencies import get_db
 
 document_router = APIRouter(
     prefix="/api/v1/p/{project_id}/documents", tags=["documents", "v1"]
@@ -14,7 +17,11 @@ document_router = APIRouter(
 
 
 @document_router.post("/process", response_model=DocumentProcessingResponse)
-async def process_document(project_id: str, request: DocumentProcessingRequest):
+async def process_document(
+    project_id: str,
+    request: DocumentProcessingRequest,
+    mongo_db: AsyncDatabase = Depends(get_db),
+):
     """Processes a document and returns the processing result.
 
     Args:
@@ -36,7 +43,112 @@ async def process_document(project_id: str, request: DocumentProcessingRequest):
                 "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
             },
         )
+    chunks_objects = [
+        DocumentChunk(
+            **chunk.model_dump(),
+            project_id=project_id,
+            file_id=request.file_id,
+            chunk_order=idx_
+        )
+        for idx_, chunk in enumerate(chunks)
+    ]
+    document_chunk_model = DocumentChunkModel(mongo_db=mongo_db)
+    records = await document_chunk_model.insert_many_chunks(chunks_objects)
+    if not records:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "file_id": request.file_id,
+                "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
+            },
+        )
+
     document_controller.logger.info(
-        "Document processed successfully: %s (%d chunks)", request.file_id, len(chunks)
+        "Document processed successfully: %s (%d chunks)", request.file_id, len(records)
     )
-    return {"file_id": request.file_id, "chunks": chunks, "count": len(chunks)}
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            "project_id": project_id,
+            "file_id": request.file_id,
+            "chunks": [
+                {**chunk.model_dump(exclude={"object_id", "file_id", "project_id"})}
+                for chunk in records
+            ],
+            "count": len(records),
+        },
+    )
+
+
+@document_router.get("/{file_id}/list", response_model=DocumentProcessingResponse)
+async def list_document_chunks(
+    project_id: str,
+    file_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    mongo_db: AsyncDatabase = Depends(get_db),
+):
+    """Lists all processed document chunks for a specific project.
+
+    Args:
+        project_id (str): The ID of the project.
+
+    Returns:
+        JSONResponse: The response containing the list of processed document chunks.
+    """
+    if limit > 300:
+        limit = 300
+    chunk_model = DocumentChunkModel(mongo_db=mongo_db)
+    chunks = await chunk_model.get_chunks_by_project_file(
+        project_id=project_id, file_id=file_id, skip=skip, limit=limit
+    )
+    if not chunks:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.CHUNK_NOT_FOUND.value},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "project_id": project_id,
+            "file_id": file_id,
+            "chunks": [
+                {**chunk.model_dump(exclude={"object_id", "file_id", "project_id"})}
+                for chunk in chunks
+            ],
+            "count": len(chunks),
+        },
+    )
+
+
+@document_router.delete("/{file_id}")
+async def delete_document_chunks(
+    project_id: str,
+    file_id: str,
+    mongo_db: AsyncDatabase = Depends(get_db),
+):
+    """Deletes all processed document chunks for a specific project.
+
+    Args:
+        project_id (str): The ID of the project.
+        file_id (str): The ID of the file.
+
+    Returns:
+        JSONResponse: The response indicating the result of the deletion.
+    """
+    chunk_model = DocumentChunkModel(mongo_db=mongo_db)
+    deleted_count = await chunk_model.delete_chunks_by_project_file(
+        project_id=project_id, file_id=file_id
+    )
+    if deleted_count == 0:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.CHUNK_NOT_FOUND.value},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "count": deleted_count,
+            "msg": ResponseSignals.CHUNK_DELETION_SUCCEEDED.value,
+        },
+    )
