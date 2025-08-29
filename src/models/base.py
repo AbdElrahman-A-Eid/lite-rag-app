@@ -2,6 +2,7 @@
 Base model for all database entities.
 """
 
+import logging
 from pymongo.asynchronous.database import AsyncDatabase
 
 
@@ -17,3 +18,4 @@ class BaseDataModel:
             mongo_db (AsyncDatabase): The MongoDB database async instance.
         """
         self.mongo_db = mongo_db
+        self.logger = logging.getLogger(self.__class__.__name__)
