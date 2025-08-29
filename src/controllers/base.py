@@ -3,7 +3,6 @@ Base controllers for handling common operations.
 """
 
 import logging
-from config import settings
 
 
 class BaseController:
@@ -15,5 +14,7 @@ class BaseController:
         """
         Initialize the base controller.
         """
+        from config import settings  # pylint: disable=import-outside-toplevel
+
         self.settings = settings
         self.logger = logging.getLogger(self.__class__.__name__)
