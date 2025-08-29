@@ -19,6 +19,7 @@ class DocumentProcessingRequest(BaseModel):
 class ChunkResponse(BaseModel):
     """Response model for a document chunk."""
 
+    chunk_order: int = Field(description="The order of the chunk in the document.")
     page_content: str = Field(description="The text content of the chunk.")
     metadata: Dict[str, Any] = Field(description="Metadata associated with the chunk.")
 
@@ -28,11 +29,12 @@ class ChunkResponse(BaseModel):
 class DocumentProcessingResponse(BaseModel):
     """Response schema for document processing."""
 
+    project_id: str = Field(description="The ID of the project.")
     file_id: str = Field(description="The ID of the file.")
     chunks: Optional[List[ChunkResponse]] = Field(
         default=None, description="The list of document chunks."
     )
-    count: Optional[int] = Field(default=0, description="The number of chunks.")
+    count: Optional[int] = Field(default=None, description="The number of chunks.")
     msg: Optional[str] = Field(
         default=None, description="A message indicating the result of the processing."
     )
