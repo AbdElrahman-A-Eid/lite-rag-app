@@ -8,6 +8,8 @@ from pymongo.asynchronous.database import AsyncDatabase
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 from models.base import BaseDataModel
 from models.enums import CollectionNames
+from models.chunk import DocumentChunkModel
+from controllers import ProjectController
 
 
 class Project(BaseModel):
@@ -72,3 +74,38 @@ class ProjectModel(BaseDataModel):
         cursor = self.collection.find().skip(skip).limit(limit)
         projects = await cursor.to_list(length=limit)
         return [Project(**project) for project in projects]
+
+    async def get_project_by_id(self, project_id: str) -> Optional[Project]:
+        """Get a project by its ID from the database.
+
+        Args:
+            project_id (str): The ID of the project.
+
+        Returns:
+            Optional[Project]: The project if found, None otherwise.
+        """
+        project_data = await self.collection.find_one({"id": project_id})
+        if project_data:
+            return Project(**project_data)
+        return None
+
+    async def delete_project(self, project_id: str) -> bool:
+        """Delete a project by its ID from the database and its associated data.
+
+        Args:
+            project_id (str): The ID of the project.
+
+        Returns:
+            bool: True if the project was deleted, False otherwise.
+        """
+        result = await self.collection.delete_one({"id": project_id})
+        if result.deleted_count != 0:
+            chunk_model = DocumentChunkModel(self.mongo_db)
+            deleted_count = await chunk_model.delete_chunks_by_project(project_id)
+            if deleted_count > 0:
+                self.logger.info(
+                    "Deleted %d chunks for project %s", deleted_count, project_id
+                )
+                ProjectController().delete_project_folder(project_id)
+                return True
+        return False

@@ -57,3 +57,29 @@ class ProjectController(BaseController):
         """
         project_dir = self.files_dir / project_id
         return project_dir.is_dir()
+
+    def delete_project_folder(self, project_id: str) -> None:
+        """Deletes a project directory including all its files.
+
+        Args:
+            project_id (str): The ID of the project to delete.
+        """
+        project_dir = self.files_dir / project_id
+        files_count = 0
+        if project_dir.is_dir():
+            for item in project_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                    files_count += 1
+                elif item.is_dir():
+                    for sub_item in item.iterdir():
+                        if sub_item.is_file():
+                            sub_item.unlink()
+                            files_count += 1
+                    item.rmdir()
+            project_dir.rmdir()
+            self.logger.info(
+                "Deleted project directory: %s (%d files)", project_id, files_count
+            )
+        else:
+            self.logger.warning("Project directory not found: %s", project_id)
