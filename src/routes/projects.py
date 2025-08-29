@@ -9,6 +9,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 from dependencies import get_db
 from controllers import ProjectController
 from models import ProjectModel, Project
+from models.enums import ResponseSignals
 from routes.schemas import (
     ProjectCreationResponse,
     ProjectListResponse,
@@ -20,7 +21,8 @@ projects_router = APIRouter(prefix="/api/v1/projects", tags=["projects", "v1"])
 
 @projects_router.post("/create", response_model=ProjectCreationResponse)
 async def create_project(
-    project: Optional[ProjectCreationRequest] = None, mongo_db: AsyncDatabase = Depends(get_db)
+    project: Optional[ProjectCreationRequest] = None,
+    mongo_db: AsyncDatabase = Depends(get_db),
 ):
     """
     Creates a new project.
@@ -30,12 +32,14 @@ async def create_project(
     if not project_id:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"msg": "Failed to create project"},
+            content={"msg": ResponseSignals.PROJECT_CREATION_FAILED.value},
         )
 
     project_model = ProjectModel(mongo_db)
     project_record = await project_model.insert_project(
-        Project(id=project_id, **(project.model_dump(exclude_unset=True) if project else {}))
+        Project(
+            id=project_id, **(project.model_dump(exclude_unset=True) if project else {})
+        )
     )
 
     return JSONResponse(
@@ -64,4 +68,40 @@ async def list_projects(
             ],
             "count": len(projects),
         },
+    )
+
+
+@projects_router.get("/{project_id}", response_model=ProjectCreationResponse)
+async def get_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)):
+    """
+    Retrieves a specific project by its ID.
+    """
+    project_model = ProjectModel(mongo_db)
+    project = await project_model.get_project_by_id(project_id)
+    if not project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=project.model_dump(exclude={"object_id"}),
+    )
+
+
+@projects_router.delete("/{project_id}")
+async def delete_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)):
+    """
+    Deletes a specific project by its ID.
+    """
+    project_model = ProjectModel(mongo_db)
+    deletion_status = await project_model.delete_project(project_id)
+    if not deletion_status:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
+    return JSONResponse(
+        content={"msg": ResponseSignals.PROJECT_DELETION_SUCCEEDED.value},
+        status_code=status.HTTP_200_OK,
     )
