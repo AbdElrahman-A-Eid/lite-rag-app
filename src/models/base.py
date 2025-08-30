@@ -3,7 +3,36 @@ Base model for all database entities.
 """
 
 import logging
+from typing import Union, Annotated, Optional
+from pydantic import BeforeValidator, PlainSerializer
 from pymongo.asynchronous.database import AsyncDatabase
+from bson.objectid import ObjectId
+
+
+def validate_object_id(v: Union[str, ObjectId, None]) -> Optional[ObjectId]:
+    """Validate ObjectId input."""
+    if v is None:
+        return v
+    if isinstance(v, ObjectId):
+        return v
+    if isinstance(v, str):
+        try:
+            return ObjectId(v)
+        except Exception as exc:
+            raise ValueError("Invalid ObjectId format") from exc
+    raise ValueError("ObjectId must be a valid ObjectId or string")
+
+
+def serialize_object_id(v: Optional[ObjectId]) -> Optional[str]:
+    """Serialize ObjectId to string."""
+    return str(v) if v is not None else None
+
+
+MongoObjectId = Annotated[
+    ObjectId,
+    BeforeValidator(validate_object_id),
+    PlainSerializer(serialize_object_id, return_type=str, when_used="json"),
+]
 
 
 class BaseDataModel:
