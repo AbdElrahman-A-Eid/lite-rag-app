@@ -38,3 +38,15 @@ class DocumentProcessingResponse(BaseModel):
     msg: Optional[str] = Field(
         default=None, description="A message indicating the result of the processing."
     )
+
+
+class DocumentListResponse(BaseModel):
+    """Response schema for listing document chunks."""
+
+    project_id: str = Field(description="The ID of the project.")
+    file_id: str = Field(description="The ID of the file.")
+    chunks: Optional[List[ChunkResponse]] = Field(
+        default=None, description="The list of document chunks."
+    )
+    count: Optional[int] = Field(default=None, description="The number of chunks.")
+    total: int = Field(default=0, description="The total number of chunks.")
