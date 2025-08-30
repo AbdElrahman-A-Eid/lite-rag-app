@@ -35,7 +35,7 @@ async def create_project(
             content={"msg": ResponseSignals.PROJECT_CREATION_FAILED.value},
         )
 
-    project_model = ProjectModel(mongo_db)
+    project_model = await ProjectModel.create_instance(mongo_db)
     project_record = await project_model.insert_project(
         Project(
             id=project_id, **(project.model_dump(exclude_unset=True) if project else {})
@@ -57,7 +57,7 @@ async def list_projects(
     """
     if limit > 100:
         limit = 100
-    project_model = ProjectModel(mongo_db)
+    project_model = await ProjectModel.create_instance(mongo_db)
     projects = await project_model.get_projects(skip=skip, limit=limit)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -67,6 +67,7 @@ async def list_projects(
                 for project in projects
             ],
             "count": len(projects),
+            "total": await project_model.count_projects(),
         },
     )
 
@@ -76,7 +77,7 @@ async def get_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)
     """
     Retrieves a specific project by its ID.
     """
-    project_model = ProjectModel(mongo_db)
+    project_model = await ProjectModel.create_instance(mongo_db)
     project = await project_model.get_project_by_id(project_id)
     if not project:
         return JSONResponse(
@@ -94,7 +95,7 @@ async def delete_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_
     """
     Deletes a specific project by its ID.
     """
-    project_model = ProjectModel(mongo_db)
+    project_model = await ProjectModel.create_instance(mongo_db)
     deletion_status = await project_model.delete_project(project_id)
     if not deletion_status:
         return JSONResponse(

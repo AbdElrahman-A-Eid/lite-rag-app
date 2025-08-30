@@ -6,7 +6,11 @@ from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
 from controllers import DocumentController
-from routes.schemas import DocumentProcessingRequest, DocumentProcessingResponse
+from routes.schemas import (
+    DocumentProcessingRequest,
+    DocumentProcessingResponse,
+    DocumentListResponse,
+)
 from models import DocumentChunk, DocumentChunkModel
 from models.enums import ResponseSignals
 from dependencies import get_db
@@ -52,7 +56,7 @@ async def process_document(
         )
         for idx_, chunk in enumerate(chunks)
     ]
-    document_chunk_model = DocumentChunkModel(mongo_db=mongo_db)
+    document_chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     records = await document_chunk_model.insert_many_chunks(chunks_objects)
     if not records:
         return JSONResponse(
@@ -80,7 +84,7 @@ async def process_document(
     )
 
 
-@document_router.get("/{file_id}/list", response_model=DocumentProcessingResponse)
+@document_router.get("/{file_id}/list", response_model=DocumentListResponse)
 async def list_document_chunks(
     project_id: str,
     file_id: str,
@@ -98,7 +102,7 @@ async def list_document_chunks(
     """
     if limit > 300:
         limit = 300
-    chunk_model = DocumentChunkModel(mongo_db=mongo_db)
+    chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     chunks = await chunk_model.get_chunks_by_project_file(
         project_id=project_id, file_id=file_id, skip=skip, limit=limit
     )
@@ -117,6 +121,9 @@ async def list_document_chunks(
                 for chunk in chunks
             ],
             "count": len(chunks),
+            "total": await chunk_model.count_chunks_by_project_file(
+                project_id, file_id
+            ),
         },
     )
 
@@ -136,7 +143,7 @@ async def delete_document_chunks(
     Returns:
         JSONResponse: The response indicating the result of the deletion.
     """
-    chunk_model = DocumentChunkModel(mongo_db=mongo_db)
+    chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     deleted_count = await chunk_model.delete_chunks_by_project_file(
         project_id=project_id, file_id=file_id
     )
