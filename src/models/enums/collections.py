@@ -10,3 +10,4 @@ class CollectionNames(str, Enum):
 
     PROJECTS = "projects"
     CHUNKS = "chunks"
+    ASSETS = "assets"
