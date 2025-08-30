@@ -4,19 +4,18 @@ Model definition for a document chunk.
 
 from typing import Dict, List, Optional, Any
 
-from bson.objectid import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
-from pymongo import InsertOne
+from pymongo import InsertOne, IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
 
-from models.base import BaseDataModel
+from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
 
 
 class DocumentChunk(BaseModel):
     """Model definition for a document chunk."""
 
-    object_id: Optional[ObjectId] = Field(default=None, alias="_id")
+    object_id: Optional[MongoObjectId] = Field(default=None, alias="_id")
     project_id: str
     file_id: str
     chunk_order: int
@@ -24,6 +23,31 @@ class DocumentChunk(BaseModel):
     metadata: Dict[str, Any]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @staticmethod
+    def get_index_fields() -> List[Dict[str, Any]]:
+        """Get the index fields for the DocumentChunk model.
+
+        Returns:
+            A list of index field names.
+        """
+        return [
+            {
+                "keys": [
+                    ("project_id", 1),
+                ],
+                "name": "project_id_index_1",
+                "unique": False,
+            },
+            {
+                "keys": [
+                    ("project_id", 1),
+                    ("file_id", 1),
+                ],
+                "name": "project_file_id_index_1",
+                "unique": False,
+            },
+        ]
 
 
 class DocumentChunkModel(BaseDataModel):
@@ -39,6 +63,33 @@ class DocumentChunkModel(BaseDataModel):
         """
         super().__init__(mongo_db)
         self.collection = self.mongo_db[CollectionNames.CHUNKS.value]
+
+    @classmethod
+    async def create_instance(cls, mongo_db: AsyncDatabase) -> "DocumentChunkModel":
+        """Create a new instance of the DocumentChunk model.
+
+        Args:
+            mongo_db (AsyncDatabase): The MongoDB database async instance.
+
+        Returns:
+            DocumentChunkModel: The new instance of the Document Chunk model.
+        """
+        instance = cls(mongo_db)
+        await instance.create_index_fields()
+        return instance
+
+    async def create_index_fields(self):
+        """Create the index fields for the Project model."""
+        self.logger.info("Checking index fields for DocumentChunk model...")
+        index_fields = DocumentChunk.get_index_fields()
+        index_info = await self.collection.index_information()
+        if any(not index_info.get(index_field["name"]) for index_field in index_fields):
+            await self.collection.create_indexes(
+                [IndexModel(**index_field) for index_field in index_fields]
+            )
+            self.logger.info(
+                "Created %d index fields for DocumentChunk model.", len(index_fields)
+            )
 
     async def insert_chunk(self, chunk: DocumentChunk) -> DocumentChunk:
         """Insert a new document chunk into the database.
@@ -106,6 +157,28 @@ class DocumentChunkModel(BaseDataModel):
         chunks = await cursor.to_list(length=None)
         return [DocumentChunk(**chunk) for chunk in chunks]
 
+    async def get_chunk_by_project(
+        self, project_id: str, skip: int, limit: int
+    ) -> List[DocumentChunk]:
+        """Get a list of document chunks for a specific project.
+
+        Args:
+            project_id: The ID of the project.
+            skip: The number of chunks to skip.
+            limit: The maximum number of chunks to return.
+
+        Returns:
+            A list of document chunks.
+        """
+        cursor = (
+            self.collection.find({"project_id": project_id})
+            .sort([("file_id", 1), ("chunk_order", 1)])
+            .skip(skip)
+            .limit(limit)
+        )
+        chunks = await cursor.to_list(length=None)
+        return [DocumentChunk(**chunk) for chunk in chunks]
+
     async def delete_chunks_by_project_file(self, project_id: str, file_id: str) -> int:
         """Delete document chunks for a specific project and file.
 
@@ -132,3 +205,28 @@ class DocumentChunkModel(BaseDataModel):
         """
         result = await self.collection.delete_many({"project_id": project_id})
         return result.deleted_count
+
+    async def count_chunks_by_project_file(self, project_id: str, file_id: str) -> int:
+        """Count document chunks for a specific project and file.
+
+        Args:
+            project_id: The ID of the project.
+            file_id: The ID of the file.
+
+        Returns:
+            The number of document chunks.
+        """
+        return await self.collection.count_documents(
+            {"project_id": project_id, "file_id": file_id}
+        )
+
+    async def count_chunks_by_project(self, project_id: str) -> int:
+        """Count document chunks for a specific project.
+
+        Args:
+            project_id: The ID of the project.
+
+        Returns:
+            The number of document chunks.
+        """
+        return await self.collection.count_documents({"project_id": project_id})
