@@ -36,3 +36,4 @@ class ProjectListResponse(BaseModel):
         default=[], description="The list of projects."
     )
     count: int = Field(default=0, description="The number of projects.")
+    total: int = Field(default=0, description="The total number of projects.")
