@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, ConfigDict, Field
 from pymongo import InsertOne, IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
+from bson.objectid import ObjectId
 
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
@@ -16,7 +17,7 @@ class DocumentChunk(BaseModel):
     """Model definition for a document chunk."""
 
     object_id: Optional[MongoObjectId] = Field(default=None, alias="_id")
-    project_id: str
+    project_id: MongoObjectId
     file_id: str
     chunk_order: int
     page_content: str
@@ -124,7 +125,7 @@ class DocumentChunkModel(BaseDataModel):
             self.logger.info(
                 "Deleted %d existing chunks for project %s, file %s",
                 deleted_count.deleted_count,
-                chunks[0].project_id,
+                str(chunks[0].project_id),
                 chunks[0].file_id,
             )
         chunk_operations = [
@@ -137,19 +138,19 @@ class DocumentChunkModel(BaseDataModel):
         return chunks
 
     async def get_chunks_by_project_file(
-        self, project_id: str, file_id: str, skip: int, limit: int
+        self, project_object_id: ObjectId, file_id: str, skip: int, limit: int
     ) -> List[DocumentChunk]:
         """Get a list of document chunks for a specific project and file.
 
         Args:
-            project_id: The ID of the project.
+            project_object_id: The object ID of the project.
             file_id: The ID of the file.
 
         Returns:
             A list of document chunks.
         """
         cursor = (
-            self.collection.find({"project_id": project_id, "file_id": file_id})
+            self.collection.find({"project_id": project_object_id, "file_id": file_id})
             .sort("chunk_order", 1)
             .skip(skip)
             .limit(limit)
@@ -158,12 +159,12 @@ class DocumentChunkModel(BaseDataModel):
         return [DocumentChunk(**chunk) for chunk in chunks]
 
     async def get_chunk_by_project(
-        self, project_id: str, skip: int, limit: int
+        self, project_object_id: ObjectId, skip: int, limit: int
     ) -> List[DocumentChunk]:
         """Get a list of document chunks for a specific project.
 
         Args:
-            project_id: The ID of the project.
+            project_object_id: The object ID of the project.
             skip: The number of chunks to skip.
             limit: The maximum number of chunks to return.
 
@@ -171,7 +172,7 @@ class DocumentChunkModel(BaseDataModel):
             A list of document chunks.
         """
         cursor = (
-            self.collection.find({"project_id": project_id})
+            self.collection.find({"project_id": project_object_id})
             .sort([("file_id", 1), ("chunk_order", 1)])
             .skip(skip)
             .limit(limit)
@@ -179,54 +180,58 @@ class DocumentChunkModel(BaseDataModel):
         chunks = await cursor.to_list(length=None)
         return [DocumentChunk(**chunk) for chunk in chunks]
 
-    async def delete_chunks_by_project_file(self, project_id: str, file_id: str) -> int:
+    async def delete_chunks_by_project_file(
+        self, project_object_id: ObjectId, file_id: str
+    ) -> int:
         """Delete document chunks for a specific project and file.
 
         Args:
-            project_id: The ID of the project.
+            project_object_id: The object ID of the project.
             file_id: The ID of the file.
 
         Returns:
             The number of deleted chunks.
         """
         result = await self.collection.delete_many(
-            {"project_id": project_id, "file_id": file_id}
+            {"project_id": project_object_id, "file_id": file_id}
         )
         return result.deleted_count
 
-    async def delete_chunks_by_project(self, project_id: str) -> int:
+    async def delete_chunks_by_project(self, project_object_id: ObjectId) -> int:
         """Delete document chunks for a specific project.
 
         Args:
-            project_id: The ID of the project.
+            project_object_id: The object ID of the project.
 
         Returns:
             The number of deleted chunks.
         """
-        result = await self.collection.delete_many({"project_id": project_id})
+        result = await self.collection.delete_many({"project_id": project_object_id})
         return result.deleted_count
 
-    async def count_chunks_by_project_file(self, project_id: str, file_id: str) -> int:
+    async def count_chunks_by_project_file(
+        self, project_object_id: ObjectId, file_id: str
+    ) -> int:
         """Count document chunks for a specific project and file.
 
         Args:
-            project_id: The ID of the project.
+            project_object_id: The object ID of the project.
             file_id: The ID of the file.
 
         Returns:
             The number of document chunks.
         """
         return await self.collection.count_documents(
-            {"project_id": project_id, "file_id": file_id}
+            {"project_id": project_object_id, "file_id": file_id}
         )
 
-    async def count_chunks_by_project(self, project_id: str) -> int:
+    async def count_chunks_by_project(self, project_object_id: ObjectId) -> int:
         """Count document chunks for a specific project.
 
         Args:
-            project_id: The ID of the project.
+            project_object_id: The object ID of the project.
 
         Returns:
             The number of document chunks.
         """
-        return await self.collection.count_documents({"project_id": project_id})
+        return await self.collection.count_documents({"project_id": project_object_id})
