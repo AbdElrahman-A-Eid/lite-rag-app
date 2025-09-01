@@ -5,10 +5,11 @@ Model definitions for projects.
 from typing import Optional, List, Dict, Any
 from pymongo import IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
+from bson.objectid import ObjectId
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
-from models.chunk import DocumentChunkModel
+from models.asset import AssetModel
 from controllers import ProjectController
 
 
@@ -142,16 +143,18 @@ class ProjectModel(BaseDataModel):
         Returns:
             bool: True if the project was deleted, False otherwise.
         """
-        result = await self.collection.delete_one({"id": project_id})
+        project = await ProjectModel(self.mongo_db).collection.find_one(
+            {"id": project_id}
+        )
+        project_object_id: Optional[ObjectId] = project["_id"] if project else None
+        if not project_object_id:
+            return False
+        asset_model = await AssetModel.create_instance(self.mongo_db)
+        await asset_model.delete_assets_by_project(project_object_id)
+        result = await self.collection.delete_one({"_id": project_object_id})
         if result.deleted_count != 0:
-            chunk_model = DocumentChunkModel(self.mongo_db)
-            deleted_count = await chunk_model.delete_chunks_by_project(project_id)
-            if deleted_count > 0:
-                self.logger.info(
-                    "Deleted %d chunks for project %s", deleted_count, project_id
-                )
-                ProjectController().delete_project_folder(project_id)
-                return True
+            ProjectController().delete_project_folder(project_id)
+            return True
         return False
 
     async def count_projects(self) -> int:
