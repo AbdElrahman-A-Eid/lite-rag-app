@@ -90,7 +90,7 @@ async def get_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)
     )
 
 
-@projects_router.delete("/{project_id}")
+@projects_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)):
     """
     Deletes a specific project by its ID.
@@ -102,7 +102,4 @@ async def delete_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
-    return JSONResponse(
-        content={"msg": ResponseSignals.PROJECT_DELETION_SUCCEEDED.value},
-        status_code=status.HTTP_200_OK,
-    )
+    return
