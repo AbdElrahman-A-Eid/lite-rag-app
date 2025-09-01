@@ -16,6 +16,5 @@ class ResponseSignals(str, Enum):
     DOCUMENT_PROCESSING_FAILED = "Document Processing Failed"
     PROJECT_CREATION_FAILED = "Project Creation Failed"
     CHUNK_NOT_FOUND = "No Chunks Found for the specified Project or File"
-    CHUNK_DELETION_SUCCEEDED = "Chunk Deletion Succeeded"
     PROJECT_NOT_FOUND = "Project Not Found"
-    PROJECT_DELETION_SUCCEEDED = "Project Deletion Succeeded"
+    ASSET_NOT_FOUND = "Asset Not Found"
