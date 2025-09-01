@@ -1,5 +1,5 @@
 """
-Controllers for file management operations.
+Controllers for asset management operations.
 """
 
 import re
@@ -31,6 +31,24 @@ class FileController(BaseController):
         clean_filename = self._clean_filename(filename)
         return f"{unique_id}_{clean_filename}"
 
+    def get_file_size_mb(self, file: UploadFile) -> float:
+        """Get the size of the uploaded file in Megabytes.
+
+        Args:
+            file (UploadFile): The uploaded file.
+
+        Returns:
+            float: The size of the file in Megabytes.
+        """
+        if hasattr(file, "size") and file.size is not None:
+            file_size_mb = file.size / (1024 * 1024)
+        else:
+            current_position = file.file.tell()
+            file.file.seek(0, 2)
+            file_size_mb = file.file.tell() / (1024 * 1024)
+            file.file.seek(current_position)
+        return file_size_mb
+
     def validate_file(self, file: UploadFile) -> Tuple[bool, str]:
         """Validates the uploaded file against supported types and size limits.
 
@@ -58,13 +76,7 @@ class FileController(BaseController):
                 )
                 return False, error_msg
 
-            if hasattr(file, "size") and file.size is not None:
-                file_size_mb = file.size / (1024 * 1024)
-            else:
-                current_position = file.file.tell()
-                file.file.seek(0, 2)
-                file_size_mb = file.file.tell() / (1024 * 1024)
-                file.file.seek(current_position)
+            file_size_mb = self.get_file_size_mb(file)
 
             if file_size_mb > self.settings.files_max_size_mb:
                 error_msg = ResponseSignals.FILE_TOO_LARGE.value
