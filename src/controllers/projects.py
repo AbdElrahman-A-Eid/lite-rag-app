@@ -83,3 +83,35 @@ class ProjectController(BaseController):
             )
         else:
             self.logger.warning("Project directory not found: %s", project_id)
+
+    def delete_file(self, project_id: str, file_name: str) -> bool:
+        """Deletes a specific file from a project directory.
+
+        Args:
+            project_id (str): The ID of the project.
+            file_name (str): The name of the file to delete.
+
+        Returns:
+            bool: True if the file was deleted successfully, False otherwise.
+        """
+        project_dir = self.files_dir / project_id
+        file_path = project_dir / file_name
+        if file_path.is_file():
+            file_path.unlink()
+            self.logger.info("Deleted file: %s", file_path)
+            return True
+        else:
+            self.logger.warning("File not found: %s", file_path)
+            return False
+
+    def delete_project_files(self, project_id: str, file_names: List[str]) -> bool:
+        """Deletes multiple files from a project directory.
+
+        Args:
+            project_id (str): The ID of the project.
+            file_names (List[str]): A list of file names to delete.
+
+        Returns:
+            bool: True if all files were deleted successfully, False otherwise.
+        """
+        return all(self.delete_file(project_id, file_name) for file_name in file_names)
