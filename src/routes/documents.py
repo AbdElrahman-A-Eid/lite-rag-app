@@ -11,7 +11,7 @@ from routes.schemas import (
     DocumentProcessingResponse,
     DocumentListResponse,
 )
-from models import DocumentChunk, DocumentChunkModel
+from models import DocumentChunk, DocumentChunkModel, ProjectModel
 from models.enums import ResponseSignals
 from dependencies import get_db
 
@@ -35,6 +35,13 @@ async def process_document(
     Returns:
         JSONResponse: The response containing the processing result.
     """
+    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_record = await project_model.get_project_by_id(project_id)
+    if project_record is None or project_record.object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
     document_controller = DocumentController(project_id=project_id)
     chunks = document_controller.process_file(
         request.file_id, request.chunk_size, request.chunk_overlap
@@ -50,7 +57,7 @@ async def process_document(
     chunks_objects = [
         DocumentChunk(
             **chunk.model_dump(),
-            project_id=project_id,
+            project_id=project_record.object_id,
             file_id=request.file_id,
             chunk_order=idx_
         )
@@ -102,9 +109,19 @@ async def list_document_chunks(
     """
     if limit > 300:
         limit = 300
+    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_record = await project_model.get_project_by_id(project_id)
+    if project_record is None or project_record.object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
     chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     chunks = await chunk_model.get_chunks_by_project_file(
-        project_id=project_id, file_id=file_id, skip=skip, limit=limit
+        project_object_id=project_record.object_id,
+        file_id=file_id,
+        skip=skip,
+        limit=limit,
     )
     if not chunks:
         return JSONResponse(
@@ -122,13 +139,13 @@ async def list_document_chunks(
             ],
             "count": len(chunks),
             "total": await chunk_model.count_chunks_by_project_file(
-                project_id, file_id
+                project_record.object_id, file_id
             ),
         },
     )
 
 
-@document_router.delete("/{file_id}")
+@document_router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document_chunks(
     project_id: str,
     file_id: str,
@@ -143,19 +160,20 @@ async def delete_document_chunks(
     Returns:
         JSONResponse: The response indicating the result of the deletion.
     """
+    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_record = await project_model.get_project_by_id(project_id)
+    if project_record is None or project_record.object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
     chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     deleted_count = await chunk_model.delete_chunks_by_project_file(
-        project_id=project_id, file_id=file_id
+        project_object_id=project_record.object_id, file_id=file_id
     )
     if deleted_count == 0:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.CHUNK_NOT_FOUND.value},
         )
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "count": deleted_count,
-            "msg": ResponseSignals.CHUNK_DELETION_SUCCEEDED.value,
-        },
-    )
+    return
