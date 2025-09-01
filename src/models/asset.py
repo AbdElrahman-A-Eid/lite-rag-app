@@ -6,10 +6,11 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pymongo import IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
+from bson.objectid import ObjectId
 from pydantic import BaseModel, Field, ConfigDict
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
-from models import ProjectModel
+from models.chunk import DocumentChunkModel
 
 
 class Asset(BaseModel):
@@ -116,35 +117,31 @@ class AssetModel(BaseDataModel):
         asset.object_id = record.inserted_id
         return asset
 
-    async def get_project_assets(self, project_id: str) -> List[Asset]:
+    async def get_project_assets(self, project_object_id: ObjectId) -> List[Asset]:
         """Get all assets for a specific project.
 
         Args:
-            project_id (str): The ID of the project.
+            project_object_id (ObjectId): The object ID of the project.
 
         Returns:
             List[Asset]: A list of assets belonging to the project.
         """
-        project_object_id = await ProjectModel(self.mongo_db).collection.find_one(
-            {"id": project_id}
-        )
         cursor = self.collection.find({"project_id": project_object_id})
         assets = await cursor.to_list(length=None)
         return [Asset(**asset) for asset in assets]
 
-    async def get_asset_by_name(self, project_id: str, name: str) -> Optional[Asset]:
+    async def get_asset_by_name(
+        self, project_object_id: ObjectId, name: str
+    ) -> Optional[Asset]:
         """Get a specific asset by its name for a project.
 
         Args:
-            project_id (str): The ID of the project.
+            project_object_id (ObjectId): The object ID of the project.
             name (str): The name of the asset.
 
         Returns:
             Optional[Asset]: The asset if found, None otherwise.
         """
-        project_object_id = await ProjectModel(self.mongo_db).collection.find_one(
-            {"id": project_id}
-        )
         asset_data = await self.collection.find_one(
             {"project_id": project_object_id, "name": name}
         )
@@ -152,35 +149,46 @@ class AssetModel(BaseDataModel):
             return Asset(**asset_data)
         return None
 
-    async def delete_asset(self, project_id: str, name: str) -> bool:
+    async def delete_asset(self, project_object_id: ObjectId, name: str) -> bool:
         """Delete a specific asset by its name for a project.
 
         Args:
-            project_id (str): The ID of the project.
+            project_object_id (ObjectId): The object ID of the project.
             name (str): The name of the asset.
 
         Returns:
             bool: True if the asset was deleted, False otherwise.
         """
-        project_object_id = await ProjectModel(self.mongo_db).collection.find_one(
-            {"id": project_id}
-        )
         result = await self.collection.delete_one(
             {"project_id": project_object_id, "name": name}
         )
+        chunk_model = await DocumentChunkModel.create_instance(self.mongo_db)
+        deleted_chunks = await chunk_model.delete_chunks_by_project_file(
+            project_object_id, name
+        )
+        self.logger.info("Deleted chunks for asset '%s': %d", name, deleted_chunks)
         return result.deleted_count > 0
 
-    async def delete_assets_by_project(self, project_id: str) -> int:
+    async def delete_assets_by_project(self, project_object_id: ObjectId) -> int:
         """Delete all assets for a specific project.
 
         Args:
-            project_id (str): The ID of the project.
+            project_object_id (ObjectId): The object ID of the project.
 
         Returns:
             int: The number of assets deleted.
         """
-        project_object_id = await ProjectModel(self.mongo_db).collection.find_one(
-            {"id": project_id}
+        chunk_model = await DocumentChunkModel.create_instance(self.mongo_db)
+        deleted_chunks = await chunk_model.delete_chunks_by_project(project_object_id)
+        self.logger.info(
+            "Deleted chunks for project '%s': %d",
+            str(project_object_id),
+            deleted_chunks,
         )
         result = await self.collection.delete_many({"project_id": project_object_id})
+        self.logger.info(
+            "Deleted assets for project '%s': %d",
+            str(project_object_id),
+            result.deleted_count,
+        )
         return result.deleted_count
