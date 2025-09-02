@@ -50,3 +50,6 @@ class DocumentListResponse(BaseModel):
     )
     count: Optional[int] = Field(default=None, description="The number of chunks.")
     total: int = Field(default=0, description="The total number of chunks.")
+    msg: Optional[str] = Field(
+        default=None, description="A message indicating the result of the processing."
+    )
