@@ -4,7 +4,7 @@ Model definitions for assets.
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pymongo import IndexModel
+from pymongo import IndexModel, InsertOne
 from pymongo.asynchronous.database import AsyncDatabase
 from bson.objectid import ObjectId
 from pydantic import BaseModel, Field, ConfigDict
@@ -117,6 +117,27 @@ class AssetModel(BaseDataModel):
         asset.object_id = record.inserted_id
         return asset
 
+    async def insert_many_assets(self, assets: List[Asset]) -> List[Asset]:
+        """Insert multiple assets into the database.
+
+        Args:
+            assets (List[Asset]): The list of assets to insert.
+
+        Returns:
+            List[Asset]: The list of inserted assets with assigned object_ids.
+        """
+        if not assets:
+            return []
+
+        operations = [
+            InsertOne(asset.model_dump(exclude={"object_id"})) for asset in assets
+        ]
+        records = await self.collection.bulk_write(operations)
+        if records is not None and records.upserted_ids is not None:
+            for asset, object_id in zip(assets, records.upserted_ids.values()):
+                asset.object_id = object_id
+        return assets
+
     async def get_project_assets(self, project_object_id: ObjectId) -> List[Asset]:
         """Get all assets for a specific project.
 
@@ -186,9 +207,7 @@ class AssetModel(BaseDataModel):
         Returns:
             bool: True if the asset was deleted, False otherwise.
         """
-        asset_object_id = await self.get_asset_object_id(
-            project_object_id, name
-        )
+        asset_object_id = await self.get_asset_object_id(project_object_id, name)
         if not asset_object_id:
             return False
         result = await self.collection.delete_one(
@@ -198,7 +217,9 @@ class AssetModel(BaseDataModel):
         deleted_chunks = await chunk_model.delete_chunks_by_project_asset(
             project_object_id, asset_object_id
         )
-        self.logger.info("Deleted chunks for asset '%s': %d", str(asset_object_id), deleted_chunks)
+        self.logger.info(
+            "Deleted chunks for asset '%s': %d", str(asset_object_id), deleted_chunks
+        )
         return result.deleted_count > 0
 
     async def delete_assets_by_project(self, project_object_id: ObjectId) -> int:
