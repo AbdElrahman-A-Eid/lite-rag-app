@@ -11,7 +11,7 @@ from routes.schemas import (
     DocumentProcessingResponse,
     DocumentListResponse,
 )
-from models import DocumentChunk, DocumentChunkModel, ProjectModel
+from models import DocumentChunk, DocumentChunkModel, ProjectModel, AssetModel
 from models.enums import ResponseSignals
 from dependencies import get_db
 
@@ -54,11 +54,18 @@ async def process_document(
                 "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
             },
         )
+    asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
+    asset_object_id = await asset_model.get_asset_object_id(project_record.object_id, request.file_id)
+    if asset_object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
+        )
     chunks_objects = [
         DocumentChunk(
             **chunk.model_dump(),
             project_id=project_record.object_id,
-            file_id=request.file_id,
+            asset_id=asset_object_id,
             chunk_order=idx_
         )
         for idx_, chunk in enumerate(chunks)
@@ -75,7 +82,7 @@ async def process_document(
         )
 
     document_controller.logger.info(
-        "Document processed successfully: %s (%d chunks)", request.file_id, len(records)
+        "Document processed successfully: %s (%d chunks)", str(asset_object_id), len(records)
     )
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
@@ -83,7 +90,7 @@ async def process_document(
             "project_id": project_id,
             "file_id": request.file_id,
             "chunks": [
-                {**chunk.model_dump(exclude={"object_id", "file_id", "project_id"})}
+                {**chunk.model_dump(exclude={"object_id", "asset_id", "project_id"})}
                 for chunk in records
             ],
             "count": len(records),
@@ -116,10 +123,17 @@ async def list_document_chunks(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
+    asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
+    asset_object_id = await asset_model.get_asset_object_id(project_record.object_id, file_id)
+    if asset_object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
+        )
     chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
-    chunks = await chunk_model.get_chunks_by_project_file(
+    chunks = await chunk_model.get_chunks_by_project_asset(
         project_object_id=project_record.object_id,
-        file_id=file_id,
+        asset_object_id=asset_object_id,
         skip=skip,
         limit=limit,
     )
@@ -138,8 +152,8 @@ async def list_document_chunks(
                 for chunk in chunks
             ],
             "count": len(chunks),
-            "total": await chunk_model.count_chunks_by_project_file(
-                project_record.object_id, file_id
+            "total": await chunk_model.count_chunks_by_project_asset(
+                project_record.object_id, asset_object_id
             ),
         },
     )
@@ -167,9 +181,16 @@ async def delete_document_chunks(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
+    asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
+    asset_object_id = await asset_model.get_asset_object_id(project_record.object_id, file_id)
+    if asset_object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
+        )
     chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
-    deleted_count = await chunk_model.delete_chunks_by_project_file(
-        project_object_id=project_record.object_id, file_id=file_id
+    deleted_count = await chunk_model.delete_chunks_by_project_asset(
+        project_object_id=project_record.object_id, asset_object_id=asset_object_id
     )
     if deleted_count == 0:
         return JSONResponse(
