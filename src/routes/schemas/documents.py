@@ -16,6 +16,15 @@ class DocumentProcessingRequest(BaseModel):
     )
 
 
+class ProjectDocumentsRefreshRequest(BaseModel):
+    """Request schema for project documents refresh."""
+
+    chunk_size: int = Field(gt=0, description="The size of each chunk.", default=300)
+    chunk_overlap: int = Field(
+        ge=0, description="The overlap between chunks.", default=40
+    )
+
+
 class ChunkResponse(BaseModel):
     """Response model for a document chunk."""
 
@@ -37,6 +46,20 @@ class DocumentProcessingResponse(BaseModel):
     count: Optional[int] = Field(default=None, description="The number of chunks.")
     msg: Optional[str] = Field(
         default=None, description="A message indicating the result of the processing."
+    )
+
+
+class ProjectDocumentsRefreshResponse(BaseModel):
+    """Response schema for refreshing project documents."""
+
+    project_id: str = Field(description="The ID of the project.")
+    assets: List[DocumentProcessingResponse] = Field(
+        default_factory=list,
+        description="The list of asset processing responses associated with the project.",
+    )
+    msg: Optional[str] = Field(
+        default=None,
+        description="A message indicating a general result of the refresh.",
     )
 
 

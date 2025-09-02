@@ -7,6 +7,8 @@ from routes.schemas.documents import (
     DocumentProcessingResponse,
     ChunkResponse,
     DocumentListResponse,
+    ProjectDocumentsRefreshResponse,
+    ProjectDocumentsRefreshRequest,
 )
 from routes.schemas.assets import (
     AssetPushResponse,
