@@ -149,6 +149,33 @@ class AssetModel(BaseDataModel):
             return Asset(**asset_data)
         return None
 
+    async def get_asset_object_id(
+        self, project_object_id: ObjectId, name: str
+    ) -> Optional[ObjectId]:
+        """Get the ObjectId of a specific asset by its name for a project.
+
+        Args:
+            project_object_id (ObjectId): The object ID of the project.
+            name (str): The name of the asset.
+
+        Returns:
+            Optional[ObjectId]: The ObjectId of the asset if found, None otherwise.
+        """
+        asset = await self.get_asset_by_name(project_object_id, name)
+        return asset.object_id if asset else None
+
+    async def get_asset_name(self, asset_object_id: ObjectId) -> Optional[str]:
+        """Get the name of a specific asset by its ObjectId.
+
+        Args:
+            asset_object_id (ObjectId): The object ID of the asset.
+
+        Returns:
+            Optional[str]: The name of the asset if found, None otherwise.
+        """
+        asset = await self.collection.find_one({"_id": asset_object_id})
+        return asset.name if asset else None
+
     async def delete_asset(self, project_object_id: ObjectId, name: str) -> bool:
         """Delete a specific asset by its name for a project.
 
