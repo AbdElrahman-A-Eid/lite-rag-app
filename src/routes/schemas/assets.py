@@ -29,6 +29,20 @@ class AssetPushResponse(BaseModel):
     )
 
 
+class BatchAssetsPushResponse(BaseModel):
+    """Response schema for batch asset push."""
+
+    project_id: str = Field(
+        ..., description="The ID of the project this asset belongs to"
+    )
+    assets: List[AssetPushResponse] = Field(
+        default_factory=list, description="List of assets that were uploaded"
+    )
+    msgs: Optional[List[Dict[str, str]]] = Field(
+        default=None, description="Messages indicating the results of the upload"
+    )
+
+
 class AssetListResponse(BaseModel):
     """Response schema for listing assets."""
 

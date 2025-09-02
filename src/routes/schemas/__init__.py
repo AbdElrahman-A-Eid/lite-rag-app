@@ -8,7 +8,11 @@ from routes.schemas.documents import (
     ChunkResponse,
     DocumentListResponse,
 )
-from routes.schemas.assets import AssetPushResponse, AssetListResponse
+from routes.schemas.assets import (
+    AssetPushResponse,
+    AssetListResponse,
+    BatchAssetsPushResponse,
+)
 from routes.schemas.projects import (
     ProjectCreationResponse,
     ProjectListResponse,
