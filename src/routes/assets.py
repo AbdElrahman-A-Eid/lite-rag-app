@@ -134,16 +134,16 @@ async def upload_files(
     asset_model = await AssetModel.create_instance(mongo_db)
     records = await asset_model.insert_many_assets(assets)
     response_dict = {
-            "project_id": project_id,
-            "assets": [
-                asset.model_dump(
-                    mode="json",
-                    exclude={"object_id", "project_id"},
-                    exclude_defaults=True,
-                )
-                for asset in records
-            ],
-        }
+        "project_id": project_id,
+        "assets": [
+            asset.model_dump(
+                mode="json",
+                exclude={"object_id", "project_id"},
+                exclude_defaults=True,
+            )
+            for asset in records
+        ],
+    }
     if responses:
         response_dict["msgs"] = responses
     return JSONResponse(
