@@ -55,7 +55,9 @@ async def process_document(
             },
         )
     asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
-    asset_object_id = await asset_model.get_asset_object_id(project_record.object_id, request.file_id)
+    asset_object_id = await asset_model.get_asset_object_id(
+        project_record.object_id, request.file_id
+    )
     if asset_object_id is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -82,7 +84,9 @@ async def process_document(
         )
 
     document_controller.logger.info(
-        "Document processed successfully: %s (%d chunks)", str(asset_object_id), len(records)
+        "Document processed successfully: %s (%d chunks)",
+        str(asset_object_id),
+        len(records),
     )
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
@@ -124,7 +128,9 @@ async def list_document_chunks(
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
     asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
-    asset_object_id = await asset_model.get_asset_object_id(project_record.object_id, file_id)
+    asset_object_id = await asset_model.get_asset_object_id(
+        project_record.object_id, file_id
+    )
     if asset_object_id is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -148,7 +154,7 @@ async def list_document_chunks(
             "project_id": project_id,
             "file_id": file_id,
             "chunks": [
-                {**chunk.model_dump(exclude={"object_id", "file_id", "project_id"})}
+                {**chunk.model_dump(exclude={"object_id", "asset_id", "project_id"})}
                 for chunk in chunks
             ],
             "count": len(chunks),
@@ -182,7 +188,9 @@ async def delete_document_chunks(
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
     asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
-    asset_object_id = await asset_model.get_asset_object_id(project_record.object_id, file_id)
+    asset_object_id = await asset_model.get_asset_object_id(
+        project_record.object_id, file_id
+    )
     if asset_object_id is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -138,7 +138,11 @@ class DocumentChunkModel(BaseDataModel):
         return chunks
 
     async def get_chunks_by_project_asset(
-        self, project_object_id: ObjectId, asset_object_id: ObjectId, skip: int, limit: int
+        self,
+        project_object_id: ObjectId,
+        asset_object_id: ObjectId,
+        skip: int,
+        limit: int,
     ) -> List[DocumentChunk]:
         """Get a list of document chunks for a specific project and asset.
 
@@ -150,7 +154,9 @@ class DocumentChunkModel(BaseDataModel):
             A list of document chunks.
         """
         cursor = (
-            self.collection.find({"project_id": project_object_id, "asset_id": asset_object_id})
+            self.collection.find(
+                {"project_id": project_object_id, "asset_id": asset_object_id}
+            )
             .sort("chunk_order", 1)
             .skip(skip)
             .limit(limit)
