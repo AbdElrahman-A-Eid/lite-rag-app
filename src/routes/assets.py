@@ -2,11 +2,12 @@
 Assets API routes for Lite-RAG-App
 """
 
+from typing import List
 from fastapi import APIRouter, status, UploadFile, Depends
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
 from controllers import FileController, ProjectController
-from routes.schemas import AssetPushResponse, AssetListResponse
+from routes.schemas import AssetPushResponse, AssetListResponse, BatchAssetsPushResponse
 from models import AssetModel, Asset, ProjectModel
 from models.enums import ResponseSignals, AssetType
 from dependencies import get_db
@@ -73,6 +74,81 @@ async def upload_file(
                 mode="json", exclude={"object_id", "project_id"}, exclude_defaults=True
             ),
         },
+    )
+
+
+@assets_router.post("/batch-upload", response_model=BatchAssetsPushResponse)
+async def upload_files(
+    project_id: str, files: List[UploadFile], mongo_db: AsyncDatabase = Depends(get_db)
+):
+    """Uploads multiple files to a specific project.
+
+    Args:
+        project_id (str): The ID of the project to which the files will be uploaded.
+        files (List[UploadFile]): The list of files to upload.
+
+    Returns:
+        JSONResponse: The response containing the upload status.
+    """
+    file_controller = FileController()
+    project_controller = ProjectController()
+    project_model = await ProjectModel.create_instance(mongo_db)
+    project_record = await project_model.get_project_by_id(project_id)
+    if (
+        not project_controller.validate_project(project_id)
+        or project_record is None
+        or project_record.object_id is None
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
+
+    responses = []
+    assets = []
+    for file in files:
+        is_valid, error_msg = file_controller.validate_file(file)
+        if not is_valid:
+            responses.append({"filename": file.filename, "msg": error_msg})
+            continue
+
+        success, response = await file_controller.write_file(file, project_id)
+        if not success:
+            responses.append({"filename": file.filename, "msg": response})
+            continue
+
+        assets.append(
+            Asset(
+                project_id=project_record.object_id,
+                type=AssetType.FILE.value,
+                name=response,
+                size=file_controller.get_file_size_mb(file),
+                config={"filename": file.filename, "content_type": file.content_type},
+            )
+        )
+    if not assets:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"project_id": project_id, "msgs": responses},
+        )
+    asset_model = await AssetModel.create_instance(mongo_db)
+    records = await asset_model.insert_many_assets(assets)
+    response_dict = {
+            "project_id": project_id,
+            "assets": [
+                asset.model_dump(
+                    mode="json",
+                    exclude={"object_id", "project_id"},
+                    exclude_defaults=True,
+                )
+                for asset in records
+            ],
+        }
+    if responses:
+        response_dict["msgs"] = responses
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=response_dict,
     )
 
 
