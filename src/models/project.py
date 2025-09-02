@@ -134,6 +134,30 @@ class ProjectModel(BaseDataModel):
             return Project(**project_data)
         return None
 
+    async def get_project_object_id(self, project_id: str) -> Optional[ObjectId]:
+        """Get the ObjectId of a project by its ID.
+
+        Args:
+            project_id (str): The ID of the project.
+
+        Returns:
+            Optional[ObjectId]: The ObjectId of the project if found, None otherwise.
+        """
+        project = await self.get_project_by_id(project_id)
+        return project.object_id if project else None
+
+    async def get_project_id(self, project_object_id: ObjectId) -> Optional[str]:
+        """Get the ID of a project by its ObjectId.
+
+        Args:
+            project_object_id (ObjectId): The ObjectId of the project.
+
+        Returns:
+            Optional[str]: The ID of the project if found, None otherwise.
+        """
+        project = await self.collection.find_one({"_id": project_object_id})
+        return project.id if project else None
+
     async def delete_project(self, project_id: str) -> bool:
         """Delete a project by its ID from the database and its associated data.
 
