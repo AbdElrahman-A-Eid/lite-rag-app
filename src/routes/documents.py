@@ -10,6 +10,9 @@ from routes.schemas import (
     DocumentProcessingRequest,
     DocumentProcessingResponse,
     DocumentListResponse,
+    ProjectDocumentsRefreshRequest,
+    ProjectDocumentsRefreshResponse,
+    ChunkResponse,
 )
 from models import DocumentChunk, DocumentChunkModel, ProjectModel, AssetModel
 from models.enums import ResponseSignals
@@ -98,6 +101,111 @@ async def process_document(
                 for chunk in records
             ],
             "count": len(records),
+        },
+    )
+
+
+@document_router.post("/refresh", response_model=ProjectDocumentsRefreshResponse)
+async def refresh_project_documents(
+    project_id: str,
+    request: ProjectDocumentsRefreshRequest,
+    mongo_db: AsyncDatabase = Depends(get_db),
+):
+    """Refreshes all documents for a specific project by removing old chunks and reprocessing them.
+
+    Args:
+        project_id (str): The ID of the project.
+
+    Returns:
+        JSONResponse: The response containing the list of document processing results.
+    """
+    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_record = await project_model.get_project_by_id(project_id)
+    if project_record is None or project_record.object_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
+    asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
+    assets = await asset_model.get_project_assets(project_record.object_id)
+    if not assets:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
+        )
+    document_controller = DocumentController(project_id=project_id)
+    document_chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
+    await document_chunk_model.delete_chunks_by_project(project_record.object_id)
+    processing_results = []
+    for asset in assets:
+        if asset.object_id is None:
+            processing_results.append(
+                DocumentProcessingResponse(
+                    project_id=project_id,
+                    file_id=asset.name,
+                    msg=ResponseSignals.ASSET_NOT_FOUND.value,
+                ).model_dump(mode="json", exclude_defaults=True)
+            )
+            continue
+        chunks = document_controller.process_file(
+            asset.name,
+            chunk_size=request.chunk_size,
+            chunk_overlap=request.chunk_overlap,
+        )
+        if not chunks:
+            processing_results.append(
+                DocumentProcessingResponse(
+                    project_id=project_id,
+                    file_id=asset.name,
+                    msg=ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
+                ).model_dump(mode="json", exclude_defaults=True)
+            )
+            continue
+        chunks_objects = [
+            DocumentChunk(
+                **chunk.model_dump(),
+                project_id=project_record.object_id,
+                asset_id=asset.object_id,
+                chunk_order=idx_
+            )
+            for idx_, chunk in enumerate(chunks)
+        ]
+        records = await document_chunk_model.insert_many_chunks(chunks_objects)
+        if not records:
+            processing_results.append(
+                DocumentProcessingResponse(
+                    project_id=project_id,
+                    file_id=asset.name,
+                    msg=ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
+                ).model_dump(mode="json", exclude_defaults=True)
+            )
+            continue
+        document_controller.logger.info(
+            "Document processed successfully: %s (%d chunks)",
+            str(asset.object_id),
+            len(records),
+        )
+        processing_results.append(
+            DocumentProcessingResponse(
+                project_id=project_id,
+                file_id=asset.name,
+                chunks=[
+                    ChunkResponse(
+                        **chunk.model_dump(
+                            exclude={"object_id", "asset_id", "project_id"}
+                        )
+                    )
+                    for chunk in records
+                ],
+                count=len(records),
+            ).model_dump(mode="json", exclude_defaults=True)
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            "project_id": project_id,
+            "assets": processing_results,
         },
     )
 
