@@ -186,14 +186,19 @@ class AssetModel(BaseDataModel):
         Returns:
             bool: True if the asset was deleted, False otherwise.
         """
+        asset_object_id = await self.get_asset_object_id(
+            project_object_id, name
+        )
+        if not asset_object_id:
+            return False
         result = await self.collection.delete_one(
             {"project_id": project_object_id, "name": name}
         )
         chunk_model = await DocumentChunkModel.create_instance(self.mongo_db)
-        deleted_chunks = await chunk_model.delete_chunks_by_project_file(
-            project_object_id, name
+        deleted_chunks = await chunk_model.delete_chunks_by_project_asset(
+            project_object_id, asset_object_id
         )
-        self.logger.info("Deleted chunks for asset '%s': %d", name, deleted_chunks)
+        self.logger.info("Deleted chunks for asset '%s': %d", str(asset_object_id), deleted_chunks)
         return result.deleted_count > 0
 
     async def delete_assets_by_project(self, project_object_id: ObjectId) -> int:
