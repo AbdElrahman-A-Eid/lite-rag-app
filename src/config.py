@@ -4,10 +4,12 @@ Configuration settings for Lite-RAG-App
 
 import logging
 from pathlib import Path
+from typing import Optional, List
 from logging.handlers import RotatingFileHandler
-from pydantic import Field, AnyUrl
+from pydantic import Field, AnyUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from models.enums import LogLevel
+from llm.models.enums import LLMProvider
 
 
 class Settings(BaseSettings):
@@ -23,14 +25,41 @@ class Settings(BaseSettings):
     log_console_level: LogLevel
 
     files_dir: Path
-    files_supported_types: list[str]
+    files_supported_types: List[str]
     files_max_size_mb: int = Field(ge=0, default=20)
     files_default_chunk_size_kb: int = Field(ge=0, default=512)
 
     mongo_uri: AnyUrl
     mongo_db_name: str
 
+    generation_backend: str
+    embedding_backend: str
+
+    generation_default_max_tokens: int = Field(ge=1, default=1024)
+    generation_default_temperature: float = Field(ge=0.0, le=2.0, default=0.15)
+    default_input_max_characters: int = Field(ge=1, default=3000)
+
+    openai_api_key: str
+    openai_api_base_url: Optional[str] = Field(default=None)
+
     model_config = SettingsConfigDict(env_file=".env", env_prefix="RAG_")
+
+    @field_validator("generation_backend", "embedding_backend")
+    def validate_llm_provider(self, v):
+        """Validate LLM provider.
+
+        Args:
+            v (str): The LLM provider to validate.
+
+        Raises:
+            ValueError: If the LLM provider is not supported.
+
+        Returns:
+            str: The validated LLM provider.
+        """
+        if v not in LLMProvider.__members__:
+            raise ValueError(f"Invalid LLM provider: {v}")
+        return v
 
 
 settings = Settings()  # type: ignore[call-arg]
