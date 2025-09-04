@@ -1,0 +1,44 @@
+"""
+Factory class for creating LLM Provider instances.
+"""
+
+import logging
+from typing import Optional
+from config import Settings
+from llm.models.base import LLMProviderInterface
+from llm.models.enums import LLMProvider
+from llm.providers import OpenAIProvider
+
+
+class LLMProviderFactory:
+    """
+    Factory class for creating LLM Provider instances.
+    """
+
+    def __init__(self, config: Settings):
+        self.settings = config
+        self.api_key = self.settings.cohere_api_key
+        self.base_url = self.settings.cohere_api_base_url
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def create(self, provider_type: str, **kwargs) -> Optional[LLMProviderInterface]:
+        """
+        Create a new LLM Provider instance.
+
+        Args:
+            provider_type (LLMProvider): The type of LLM Provider to create.
+            **kwargs: Additional arguments to pass to the provider's constructor.
+
+        Returns:
+            LLMProviderInterface: The created LLM Provider instance.
+        """
+        if provider_type.upper() == LLMProvider.OPENAI.value:
+            provider = OpenAIProvider(
+                max_input_characters=self.settings.default_input_max_characters,
+                default_max_output_tokens=self.settings.generation_default_max_tokens,
+                default_temperature=self.settings.generation_default_temperature,
+                **kwargs,
+            )
+            return provider
+        self.logger.error("Unsupported LLM provider type: %s", provider_type)
+        return None
