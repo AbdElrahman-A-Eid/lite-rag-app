@@ -7,7 +7,7 @@ from typing import Optional
 from config import Settings
 from llm.models.base import LLMProviderInterface
 from llm.models.enums import LLMProvider
-from llm.providers import OpenAIProvider
+from llm.providers import OpenAIProvider, CohereProvider
 
 
 class LLMProviderFactory:
@@ -35,7 +35,7 @@ class LLMProviderFactory:
         if provider_type.upper() == LLMProvider.OPENAI.value:
             self.api_key = self.settings.openai_api_key
             self.base_url = self.settings.openai_api_base_url
-            provider = OpenAIProvider(
+            openai_provider = OpenAIProvider(
                 api_key=self.api_key,
                 base_url=self.base_url,
                 max_input_characters=self.settings.default_input_max_characters,
@@ -43,6 +43,18 @@ class LLMProviderFactory:
                 default_temperature=self.settings.generation_default_temperature,
                 **kwargs,
             )
-            return provider
+            return openai_provider
+        elif provider_type.upper() == LLMProvider.COHERE.value:
+            self.api_key = self.settings.cohere_api_key
+            self.base_url = self.settings.cohere_api_base_url
+            cohere_provider = CohereProvider(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                max_input_characters=self.settings.default_input_max_characters,
+                default_max_output_tokens=self.settings.generation_default_max_tokens,
+                default_temperature=self.settings.generation_default_temperature,
+                **kwargs,
+            )
+            return cohere_provider
         self.logger.error("Unsupported LLM provider type: %s", provider_type)
         return None
