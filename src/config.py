@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     openai_api_key: str
     openai_api_base_url: Optional[str] = Field(default=None)
 
+    cohere_api_key: str
+    cohere_api_base_url: Optional[str] = Field(default=None)
+
     model_config = SettingsConfigDict(env_file=".env", env_prefix="RAG_")
 
     @field_validator("generation_backend", "embedding_backend")
