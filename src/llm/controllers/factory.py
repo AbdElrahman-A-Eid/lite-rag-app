@@ -17,8 +17,8 @@ class LLMProviderFactory:
 
     def __init__(self, config: Settings):
         self.settings = config
-        self.api_key = self.settings.cohere_api_key
-        self.base_url = self.settings.cohere_api_base_url
+        self.api_key: str
+        self.base_url: Optional[str] = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def create(self, provider_type: str, **kwargs) -> Optional[LLMProviderInterface]:
@@ -33,7 +33,11 @@ class LLMProviderFactory:
             LLMProviderInterface: The created LLM Provider instance.
         """
         if provider_type.upper() == LLMProvider.OPENAI.value:
+            self.api_key = self.settings.openai_api_key
+            self.base_url = self.settings.openai_api_base_url
             provider = OpenAIProvider(
+                api_key=self.api_key,
+                base_url=self.base_url,
                 max_input_characters=self.settings.default_input_max_characters,
                 default_max_output_tokens=self.settings.generation_default_max_tokens,
                 default_temperature=self.settings.generation_default_temperature,
