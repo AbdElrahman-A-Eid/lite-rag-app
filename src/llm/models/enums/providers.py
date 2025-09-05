@@ -9,3 +9,4 @@ class LLMProvider(str, Enum):
     """Supported LLM providers."""
 
     OPENAI = "OPENAI"
+    COHERE = "COHERE"
