@@ -71,10 +71,10 @@ class LLMProviderInterface(ABC):
         Args:
             prompt (str): The prompt to generate a response for.
             chat_history (List[Dict[str,str]]): The chat history to include in the response.
-            max_tokens (int): The maximum number of tokens to generate.
-            Optional (the global default is used if None).
-            temperature (float): The temperature to use for sampling.
-            Optional (the global default is used if None).
+            max_tokens (int): The maximum number of tokens to generate. \
+                Optional (the global default is used if None).
+            temperature (float): The temperature to use for sampling. \
+                Optional (the global default is used if None).
 
         Returns:
             Optional[str]: The generated response if available.
