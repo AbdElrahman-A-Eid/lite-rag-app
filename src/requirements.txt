@@ -8,3 +8,4 @@ PyMuPDF==1.26.4
 pymongo==4.14.1
 openai==1.105.0
 cohere==5.17.0
+qdrant-client==1.15.1
