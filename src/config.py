@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     generation_backend: str
     embedding_backend: str
 
+    generation_model_id: str
+    embedding_model_id: str
+    embedding_dimensions: int = Field(ge=1)
+
     generation_default_max_tokens: int = Field(ge=1, default=1024)
     generation_default_temperature: float = Field(ge=0.0, le=2.0, default=0.15)
     default_input_max_characters: int = Field(ge=1, default=3000)
