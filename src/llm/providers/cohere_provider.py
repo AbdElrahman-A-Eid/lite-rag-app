@@ -6,8 +6,12 @@ from enum import Enum
 from typing import Optional, Dict, List
 from cohere import ClientV2
 from llm.models.base import BaseLLMProvider
+from llm.models.enums import InputType
 
-INPUT_TYPES = ["search_query", "search_document"]
+INPUT_TYPES_MAPPING = {
+    InputType.DOCUMENT: "search_document",
+    InputType.QUERY: "search_query",
+}
 
 
 class CohereMessageRoles(str, Enum):
@@ -79,14 +83,14 @@ class CohereProvider(BaseLLMProvider):
         return {"role": role, "content": self.process_text(prompt)}
 
     def embed(
-        self, text: str | List[str], input_type: Optional[str] = None
+        self, text: str | List[str], input_type: Optional[InputType] = None
     ) -> List[float] | List[List[float]]:
         """
         Generate embeddings for the given text.
 
         Args:
             text (str | List[str]): The text or list of texts to generate embeddings for.
-            input_type (Optional[str]): The type of input (e.g., "text", "image").
+            input_type (Optional[InputType]): The type of input (e.g., "document", "query").
 
         Returns:
             List[float] | List[List[float]]: The generated embeddings.
@@ -97,9 +101,14 @@ class CohereProvider(BaseLLMProvider):
         if self.embedding_model_id is None or self.embedding_size is None:
             self.logger.error("Embedding model ID or size is not set.")
             return []
-        if input_type not in INPUT_TYPES:
+        if input_type is None:
+            self.logger.error("Input type is not set.")
+            return []
+        if input_type.value not in INPUT_TYPES_MAPPING:
             self.logger.error(
-                "Invalid input type: %s. Must be one of %s.", input_type, INPUT_TYPES
+                "Invalid input type: %s. Must be one of %s.",
+                input_type,
+                InputType.__members__,
             )
             return []
         if isinstance(text, str):

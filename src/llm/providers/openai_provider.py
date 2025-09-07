@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Optional, Dict, List
 from openai import OpenAI
 from llm.models.base import BaseLLMProvider
+from llm.models.enums import InputType
 
 
 class OpenAIMessageRoles(str, Enum):
@@ -77,14 +78,14 @@ class OpenAIProvider(BaseLLMProvider):
         return {"role": role, "content": self.process_text(prompt)}
 
     def embed(
-        self, text: str | List[str], input_type: Optional[str] = None
+        self, text: str | List[str], input_type: Optional[InputType] = None
     ) -> List[float] | List[List[float]]:
         """
         Generate embeddings for the given text.
 
         Args:
             text (str | List[str]): The text or list of texts to generate embeddings for.
-            input_type (Optional[str]): The type of input (e.g., "text", "image").
+            input_type (Optional[InputType]): The type of input (e.g., "document", "query").
 
         Returns:
             List[float] | List[List[float]]: The generated embeddings.
