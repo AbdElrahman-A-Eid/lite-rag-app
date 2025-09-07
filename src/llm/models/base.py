@@ -23,6 +23,15 @@ class LLMProviderInterface(ABC):
         """
 
     @abstractmethod
+    @property
+    def embedding_size_(self) -> int:
+        """Get the configured embedding size.
+
+        Returns:
+            int: The embedding size.
+        """
+
+    @abstractmethod
     def embed(
         self, text: str | List[str], input_type: Optional[InputType] = None
     ) -> List[float] | List[List[float]]:
@@ -124,3 +133,14 @@ class BaseLLMProvider(LLMProviderInterface):
         """
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
+
+    @property
+    def embedding_size_(self) -> int:
+        """Get the configured embedding size.
+
+        Returns:
+            int: The embedding size.
+        """
+        if self.embedding_size is None:
+            raise ValueError("Embedding model is not set.")
+        return self.embedding_size
