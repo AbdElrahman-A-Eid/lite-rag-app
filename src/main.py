@@ -11,6 +11,7 @@ from routes.projects import projects_router
 from routes.documents import document_router
 from config import settings
 from llm import LLMProviderFactory
+from vectordb import VectorDBProviderFactory
 
 
 @asynccontextmanager
@@ -39,8 +40,17 @@ async def lifespan(fastapi_app: FastAPI):
             settings.generation_model_id
         )
 
+    vectordb_factory = VectorDBProviderFactory(settings)
+    fastapi_app.state.vector_db_client = vectordb_factory.create(
+        provider=settings.vectordb_backend
+    )
+    if fastapi_app.state.vector_db_client is not None:
+        await fastapi_app.state.vector_db_client.connect()
+
     yield
 
+    if fastapi_app.state.vector_db_client is not None:
+        await fastapi_app.state.vector_db_client.disconnect()
     await fastapi_app.state.mongo_client.close()
 
 
