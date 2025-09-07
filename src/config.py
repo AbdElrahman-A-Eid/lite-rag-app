@@ -6,10 +6,9 @@ import logging
 from pathlib import Path
 from typing import Optional, List
 from logging.handlers import RotatingFileHandler
-from pydantic import Field, AnyUrl, field_validator
+from pydantic import Field, AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from models.enums import LogLevel
-from llm.models.enums import LLMProvider
 
 
 class Settings(BaseSettings):
@@ -49,24 +48,11 @@ class Settings(BaseSettings):
     cohere_api_key: str
     cohere_api_base_url: Optional[str] = Field(default=None)
 
+    vectordb_backend: str
+    vectordb_path: Path
+    vectordb_distance_metric: str
+
     model_config = SettingsConfigDict(env_file=".env", env_prefix="RAG_")
-
-    @field_validator("generation_backend", "embedding_backend")
-    def validate_llm_provider(self, v):
-        """Validate LLM provider.
-
-        Args:
-            v (str): The LLM provider to validate.
-
-        Raises:
-            ValueError: If the LLM provider is not supported.
-
-        Returns:
-            str: The validated LLM provider.
-        """
-        if v not in LLMProvider.__members__:
-            raise ValueError(f"Invalid LLM provider: {v}")
-        return v
 
 
 settings = Settings()  # type: ignore[call-arg]
