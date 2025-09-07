@@ -198,7 +198,7 @@ class QdrantProvider(VectorDBProviderInterface):
         metadata: Optional[List[Dict]] = None,
         record_ids: Optional[List[str]] = None,
         batch_size: int = 64,
-    ):
+    ) -> bool:
         """Insert vectors into the specified index.
 
         Args:
@@ -211,27 +211,30 @@ class QdrantProvider(VectorDBProviderInterface):
                 Defaults to None.
             batch_size (int, optional): The number of vectors to insert per batch. \
                 Defaults to 64.
+        
+        Returns:
+            bool: True if the vectors were inserted successfully, False otherwise.
         """
         if not self.client:
             self.logger.error("Qdrant client is not initialized.")
-            return
+            return False
         if not await self.index_exists(index_name):
             self.logger.error("Index '%s' does not exist.", index_name)
-            return
+            return False
         if metadata and len(metadata) != len(vectors):
             self.logger.error(
                 "Length of metadata (%d) does not match length of vectors (%d).",
                 len(metadata),
                 len(vectors),
             )
-            return
+            return False
         if len(texts) != len(vectors):
             self.logger.error(
                 "Length of texts (%d) does not match length of vectors (%d).",
                 len(texts),
                 len(vectors),
             )
-            return
+            return False
         try:
             self.client.upload_collection(
                 collection_name=index_name,
@@ -253,6 +256,8 @@ class QdrantProvider(VectorDBProviderInterface):
                 e,
                 exc_info=True,
             )
+            return False
+        return True
 
     async def query_vectors(
         self, index_name: str, query_vector: List[float], top_k: int

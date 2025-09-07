@@ -99,7 +99,7 @@ class VectorDBProviderInterface(ABC):
         metadata: Optional[List[Dict]] = None,
         record_ids: Optional[List[str]] = None,
         batch_size: int = 64,
-    ):
+    ) -> bool:
         """Insert vectors into the specified index.
 
         Args:
@@ -112,6 +112,9 @@ class VectorDBProviderInterface(ABC):
                 Defaults to None.
             batch_size (int, optional): The number of vectors to insert per batch. \
                 Defaults to 64.
+
+        Returns:
+            bool: True if the vectors were inserted successfully, False otherwise.
         """
 
     @abstractmethod
