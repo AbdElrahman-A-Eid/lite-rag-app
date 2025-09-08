@@ -3,13 +3,15 @@ Main application script for Lite-RAG-App
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from pymongo import AsyncMongoClient
 from routes.base import base_router
 from routes.assets import assets_router
 from routes.projects import projects_router
 from routes.documents import document_router
-from config import settings
+from routes.vectors import vector_router
+from routes.rag import rag_router
+from config import get_settings, setup_logging
 from llm import LLMProviderFactory
 from vectordb import VectorDBProviderFactory
 
@@ -21,41 +23,52 @@ async def lifespan(fastapi_app: FastAPI):
     Args:
         fastapi_app (FastAPI): The FastAPI application instance.
     """
-    fastapi_app.state.mongo_client = AsyncMongoClient(str(settings.mongo_uri))
-    fastapi_app.state.mongo_db = fastapi_app.state.mongo_client[settings.mongo_db_name]
+    fastapi_app.state.settings = get_settings()
+    fastapi_app.title = fastapi_app.state.settings.app_name
+    fastapi_app.version = fastapi_app.state.settings.app_version
+    setup_logging(fastapi_app.state.settings)
+    fastapi_app.state.mongo_client = AsyncMongoClient(
+        str(fastapi_app.state.settings.mongo_uri)
+    )
+    fastapi_app.state.mongo_db = fastapi_app.state.mongo_client[
+        fastapi_app.state.settings.mongo_db_name
+    ]
 
-    llm_factory = LLMProviderFactory(settings)
+    llm_factory = LLMProviderFactory(fastapi_app.state.settings)
     fastapi_app.state.embedding_llm = llm_factory.create(
-        provider_type=settings.embedding_backend
+        provider_type=fastapi_app.state.settings.embedding_backend
     )
     if fastapi_app.state.embedding_llm is not None:
         fastapi_app.state.embedding_llm.set_embedding_model(
-            settings.embedding_model_id, settings.embedding_dimensions
+            fastapi_app.state.settings.embedding_model_id,
+            fastapi_app.state.settings.embedding_dimensions,
         )
     fastapi_app.state.generation_llm = llm_factory.create(
-        provider_type=settings.generation_backend
+        provider_type=fastapi_app.state.settings.generation_backend
     )
     if fastapi_app.state.generation_llm is not None:
         fastapi_app.state.generation_llm.set_generation_model(
-            settings.generation_model_id
+            fastapi_app.state.settings.generation_model_id
         )
 
-    vectordb_factory = VectorDBProviderFactory(settings)
-    fastapi_app.state.vector_db_client = vectordb_factory.create(
-        provider=settings.vectordb_backend
+    vectordb_factory = VectorDBProviderFactory(fastapi_app.state.settings)
+    fastapi_app.state.vectordb_client = vectordb_factory.create(
+        provider=fastapi_app.state.settings.vectordb_backend
     )
-    if fastapi_app.state.vector_db_client is not None:
-        await fastapi_app.state.vector_db_client.connect()
+    if fastapi_app.state.vectordb_client is not None:
+        await fastapi_app.state.vectordb_client.connect()
 
     yield
 
-    if fastapi_app.state.vector_db_client is not None:
-        await fastapi_app.state.vector_db_client.disconnect()
+    if fastapi_app.state.vectordb_client is not None:
+        await fastapi_app.state.vectordb_client.disconnect()
     await fastapi_app.state.mongo_client.close()
 
 
-app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+app = FastAPI(lifespan=lifespan)
 app.include_router(base_router)
 app.include_router(assets_router)
 app.include_router(projects_router)
 app.include_router(document_router)
+app.include_router(vector_router)
+app.include_router(rag_router)

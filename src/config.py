@@ -8,7 +8,7 @@ from typing import Optional, List
 from logging.handlers import RotatingFileHandler
 from pydantic import Field, AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from models.enums import LogLevel
+from models.enums.log_level import LogLevel
 
 
 class Settings(BaseSettings):
@@ -55,11 +55,22 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="RAG_")
 
 
-settings = Settings()  # type: ignore[call-arg]
+def get_settings() -> Settings:
+    """Get the application settings.
+
+    Returns:
+        Settings: The application settings.
+    """
+    return Settings()  # type: ignore[call-arg]
 
 
-def setup_logging():
-    """Configures Application logging."""
+def setup_logging(settings: Settings):
+    """
+    Configures Application logging.
+
+    Args:
+        settings (Settings): The application settings.
+    """
     log_folder = settings.log_dir
     log_folder.mkdir(parents=True, exist_ok=True)
     log_file_path = log_folder / "app.log"
@@ -86,6 +97,3 @@ def setup_logging():
 
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
-
-
-setup_logging()
