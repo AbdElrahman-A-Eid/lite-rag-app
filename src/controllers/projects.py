@@ -4,6 +4,7 @@ Controllers for project management operations.
 
 from uuid import uuid4
 from typing import List
+from config import Settings
 from controllers.base import BaseController
 
 
@@ -12,8 +13,8 @@ class ProjectController(BaseController):
     Controller for managing projects.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, settings: Settings):
+        super().__init__(settings)
         self.files_dir = self.settings.files_dir
         self.files_dir.mkdir(parents=True, exist_ok=True)
 

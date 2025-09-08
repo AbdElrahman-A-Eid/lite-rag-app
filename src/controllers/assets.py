@@ -7,6 +7,7 @@ from typing import Tuple
 from uuid import uuid4
 from fastapi import UploadFile
 import aiofiles
+from config import Settings
 from controllers.base import BaseController
 from models.enums import ResponseSignals
 
@@ -16,8 +17,8 @@ class FileController(BaseController):
     Controller for managing file uploads and processing.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, settings: Settings):
+        super().__init__(settings)
         self.files_dir = self.settings.files_dir
         self.files_dir.mkdir(parents=True, exist_ok=True)
 

@@ -8,6 +8,7 @@ from langchain_core.documents import Document
 from langchain_core.document_loaders import BaseLoader
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from config import Settings
 from controllers.base import BaseController
 from models.enums import DocumentFileType
 
@@ -17,13 +18,14 @@ class DocumentController(BaseController):
     Controller for document-related operations.
     """
 
-    def __init__(self, project_id: str):
+    def __init__(self, settings: Settings, project_id: str):
         """Initialize the DocumentController.
 
         Args:
+            settings (Settings): The application settings.
             project_id (str): The ID of the project.
         """
-        super().__init__()
+        super().__init__(settings)
         self.files_dir = self.settings.files_dir
         self.project_id = project_id
         self.project_dir = self.files_dir / self.project_id
