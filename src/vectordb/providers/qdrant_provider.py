@@ -282,7 +282,7 @@ class QdrantProvider(VectorDBProviderInterface):
             results = await self.client.search(
                 collection_name=index_name,
                 query_vector=query_vector,
-                top_k=top_k,
+                limit=top_k,
             )
             return results
         except Exception as e:
