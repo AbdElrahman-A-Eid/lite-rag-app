@@ -10,7 +10,6 @@ from bson.objectid import ObjectId
 from pydantic import BaseModel, Field, ConfigDict
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
-from models.chunk import DocumentChunkModel
 
 
 class Asset(BaseModel):
@@ -213,13 +212,6 @@ class AssetModel(BaseDataModel):
         result = await self.collection.delete_one(
             {"project_id": project_object_id, "name": name}
         )
-        chunk_model = await DocumentChunkModel.create_instance(self.mongo_db)
-        deleted_chunks = await chunk_model.delete_chunks_by_project_asset(
-            project_object_id, asset_object_id
-        )
-        self.logger.info(
-            "Deleted chunks for asset '%s': %d", str(asset_object_id), deleted_chunks
-        )
         return result.deleted_count > 0
 
     async def delete_assets_by_project(self, project_object_id: ObjectId) -> int:
@@ -231,13 +223,6 @@ class AssetModel(BaseDataModel):
         Returns:
             int: The number of assets deleted.
         """
-        chunk_model = await DocumentChunkModel.create_instance(self.mongo_db)
-        deleted_chunks = await chunk_model.delete_chunks_by_project(project_object_id)
-        self.logger.info(
-            "Deleted chunks for project '%s': %d",
-            str(project_object_id),
-            deleted_chunks,
-        )
         result = await self.collection.delete_many({"project_id": project_object_id})
         self.logger.info(
             "Deleted assets for project '%s': %d",
