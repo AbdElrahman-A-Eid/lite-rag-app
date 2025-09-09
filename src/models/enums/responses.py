@@ -18,3 +18,7 @@ class ResponseSignals(str, Enum):
     CHUNK_NOT_FOUND = "No Chunks Found for the specified Project or File"
     PROJECT_NOT_FOUND = "Project Not Found"
     ASSET_NOT_FOUND = "Asset Not Found"
+    NO_DOCUMENTS_FOUND = "No Documents Found"
+    VECTOR_INDEXING_FAILED = "Vector Indexing Failed"
+    VECTOR_INDEX_NOT_FOUND = "Vector Index Not Found"
+    VECTOR_INDEX_EMPTY = "Vector Index is Empty"
