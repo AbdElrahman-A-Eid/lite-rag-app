@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Optional, Dict, List
 from openai import OpenAI
 from llm.models.base import BaseLLMProvider
-from llm.models.enums import InputType
+from llm.models.enums.inputs import InputType
 
 
 class OpenAIMessageRoles(str, Enum):

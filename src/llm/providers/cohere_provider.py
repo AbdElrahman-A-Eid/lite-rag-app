@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Optional, Dict, List
 from cohere import ClientV2
 from llm.models.base import BaseLLMProvider
-from llm.models.enums import InputType
+from llm.models.enums.inputs import InputType
 
 INPUT_TYPES_MAPPING = {
     InputType.DOCUMENT: "search_document",
@@ -42,7 +42,7 @@ class CohereProvider(BaseLLMProvider):
             default_temperature,
         )
         self.api_key = api_key
-        self.base_url = base_url
+        self.base_url = base_url if base_url else None
         self.client = ClientV2(api_key=self.api_key, base_url=self.base_url, **kwargs)
         self.enums = CohereMessageRoles
 
@@ -116,7 +116,7 @@ class CohereProvider(BaseLLMProvider):
         response = self.client.embed(
             texts=text,
             model=self.embedding_model_id,
-            input_type=input_type,
+            input_type=INPUT_TYPES_MAPPING[input_type],
             output_dimension=self.embedding_size,
             embedding_types=["float"],
         )

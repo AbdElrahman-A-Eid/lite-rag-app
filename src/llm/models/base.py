@@ -5,7 +5,7 @@ Base classes for all LLM providers.
 import logging
 from typing import Optional, List, Dict
 from abc import ABC, abstractmethod
-from llm.models.enums import InputType
+from llm.models.enums.inputs import InputType
 
 
 class LLMProviderInterface(ABC):
@@ -22,8 +22,8 @@ class LLMProviderInterface(ABC):
             embedding_size (int): The size of the embeddings to generate.
         """
 
-    @abstractmethod
     @property
+    @abstractmethod
     def embedding_size_(self) -> int:
         """Get the configured embedding size.
 

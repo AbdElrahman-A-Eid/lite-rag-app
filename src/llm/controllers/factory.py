@@ -6,8 +6,9 @@ import logging
 from typing import Optional
 from config import Settings
 from llm.models.base import LLMProviderInterface
-from llm.models.enums import LLMProvider
-from llm.providers import OpenAIProvider, CohereProvider
+from llm.models.enums.providers import LLMProvider
+from llm.providers.cohere_provider import CohereProvider
+from llm.providers.openai_provider import OpenAIProvider
 
 
 class LLMProviderFactory:
