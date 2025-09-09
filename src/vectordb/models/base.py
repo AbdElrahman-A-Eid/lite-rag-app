@@ -4,6 +4,7 @@ Base classes for all Vector DB providers.
 
 from typing import Optional, List, Dict
 from abc import ABC, abstractmethod
+from models.vector import RetrievedDocumentChunk
 
 
 class VectorDBProviderInterface(ABC):
@@ -119,15 +120,21 @@ class VectorDBProviderInterface(ABC):
 
     @abstractmethod
     async def query_vectors(
-        self, index_name: str, query_vector: List[float], top_k: int
-    ) -> List:
+        self,
+        index_name: str,
+        query_vector: List[float],
+        top_k: int,
+        threshold: Optional[float] = None,
+    ) -> List[RetrievedDocumentChunk]:
         """Query the specified index for similar vectors.
 
         Args:
             index_name (str): The name of the index to query.
             query_vector (List[float]): The vector to query against.
             top_k (int): The number of top similar vectors to return.
+            threshold (Optional[float], optional): Minimum similarity score to consider. \
+                Defaults to None.
 
         Returns:
-            List: A list of the most similar vectors.
+            List[RetrievedDocumentChunk]: A list of the most similar vectors.
         """

@@ -10,8 +10,8 @@ from qdrant_client.models import (
     Distance,
     VectorParams,
     CollectionDescription,
-    ScoredPoint,
 )
+from models.vector import RetrievedDocumentChunk
 from vectordb.models import VectorDBProviderInterface
 from vectordb.models.enums import SimilarityMetric
 
@@ -173,6 +173,7 @@ class QdrantProvider(VectorDBProviderInterface):
         try:
             self.client.upload_collection(
                 collection_name=index_name,
+                ids=[record_id] if record_id else None,
                 vectors=[vector],
                 payload=[
                     {
@@ -235,9 +236,17 @@ class QdrantProvider(VectorDBProviderInterface):
                 len(vectors),
             )
             return False
+        if record_ids and len(record_ids) != len(vectors):
+            self.logger.error(
+                "Length of record_ids (%d) does not match length of vectors (%d).",
+                len(record_ids),
+                len(vectors),
+            )
+            return False
         try:
             self.client.upload_collection(
                 collection_name=index_name,
+                ids=record_ids if record_ids else None,
                 vectors=vectors,
                 payload=[
                     {
@@ -260,17 +269,23 @@ class QdrantProvider(VectorDBProviderInterface):
         return True
 
     async def query_vectors(
-        self, index_name: str, query_vector: List[float], top_k: int
-    ) -> List[ScoredPoint]:
+        self,
+        index_name: str,
+        query_vector: List[float],
+        top_k: int,
+        threshold: Optional[float] = None,
+    ) -> List[RetrievedDocumentChunk]:
         """Query the specified index for similar vectors.
 
         Args:
             index_name (str): The name of the index to query.
             query_vector (List[float]): The vector to query against.
             top_k (int): The number of top similar vectors to return.
+            threshold (Optional[float], optional): Minimum similarity score to consider. \
+                Defaults to None.
 
         Returns:
-            List[ScoredPoint]: A list of the most similar vectors.
+            List[RetrievedDocumentChunk]: A list of the most similar vectors.
         """
         if not self.client:
             self.logger.error("Qdrant client is not initialized.")
@@ -284,7 +299,24 @@ class QdrantProvider(VectorDBProviderInterface):
                 query_vector=query_vector,
                 limit=top_k,
             )
-            return results
+            return [
+                RetrievedDocumentChunk(
+                    id=result.id,
+                    text=(
+                        result.payload["text"]
+                        if result.payload and "text" in result.payload
+                        else ""
+                    ),
+                    score=result.score,
+                    metadata=(
+                        result.payload["metadata"]
+                        if result.payload and "metadata" in result.payload
+                        else {}
+                    ),
+                )
+                for result in results
+                if threshold is None or (result.score and result.score >= threshold)
+            ]
         except Exception as e:
             self.logger.error(
                 "Error querying vectors from index '%s': %s",
