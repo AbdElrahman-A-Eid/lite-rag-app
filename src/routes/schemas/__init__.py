@@ -20,3 +20,9 @@ from routes.schemas.projects import (
     ProjectListResponse,
     ProjectCreationRequest,
 )
+from routes.schemas.vectors import (
+    VectorIndexRequest,
+    VectorIndexResponse,
+    VectorQueryRequest,
+    VectorQueryResponse,
+)
