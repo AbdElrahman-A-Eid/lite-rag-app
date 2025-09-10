@@ -3,12 +3,12 @@ Projects API routes for Lite-RAG-App
 """
 
 from typing import Optional
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Request
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
 from dependencies import get_db
 from controllers import ProjectController
-from models import ProjectModel, Project
+from models.project import ProjectModel, Project
 from models.enums import ResponseSignals
 from routes.schemas import (
     ProjectCreationResponse,
@@ -21,13 +21,15 @@ projects_router = APIRouter(prefix="/api/v1/projects", tags=["projects", "v1"])
 
 @projects_router.post("/create", response_model=ProjectCreationResponse)
 async def create_project(
+    request: Request,
     project: Optional[ProjectCreationRequest] = None,
     mongo_db: AsyncDatabase = Depends(get_db),
 ):
     """
     Creates a new project.
     """
-    project_controller = ProjectController()
+    settings = request.app.state.settings
+    project_controller = ProjectController(settings)
     project_id = project_controller.create_new_project()
     if not project_id:
         return JSONResponse(

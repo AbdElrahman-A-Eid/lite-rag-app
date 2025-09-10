@@ -2,7 +2,7 @@
 API routes for document-related operations.
 """
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Request
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
 from controllers import DocumentController
@@ -14,7 +14,8 @@ from routes.schemas import (
     ProjectDocumentsRefreshResponse,
     ChunkResponse,
 )
-from models import DocumentChunk, DocumentChunkModel, ProjectModel, AssetModel
+from models.chunk import DocumentChunk, DocumentChunkModel
+from models.project import ProjectModel, AssetModel
 from models.enums import ResponseSignals
 from dependencies import get_db
 
@@ -25,8 +26,9 @@ document_router = APIRouter(
 
 @document_router.post("/process", response_model=DocumentProcessingResponse)
 async def process_document(
+    request: Request,
     project_id: str,
-    request: DocumentProcessingRequest,
+    processing_request: DocumentProcessingRequest,
     mongo_db: AsyncDatabase = Depends(get_db),
 ):
     """Processes a document and returns the processing result.
@@ -38,6 +40,7 @@ async def process_document(
     Returns:
         JSONResponse: The response containing the processing result.
     """
+    settings = request.app.state.settings
     project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
     project_record = await project_model.get_project_by_id(project_id)
     if project_record is None or project_record.object_id is None:
@@ -45,21 +48,23 @@ async def process_document(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
-    document_controller = DocumentController(project_id=project_id)
+    document_controller = DocumentController(settings=settings, project_id=project_id)
     chunks = document_controller.process_file(
-        request.file_id, request.chunk_size, request.chunk_overlap
+        processing_request.file_id,
+        processing_request.chunk_size,
+        processing_request.chunk_overlap,
     )
     if not chunks:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
-                "file_id": request.file_id,
+                "file_id": processing_request.file_id,
                 "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
             },
         )
     asset_model = await AssetModel.create_instance(mongo_db=mongo_db)
     asset_object_id = await asset_model.get_asset_object_id(
-        project_record.object_id, request.file_id
+        project_record.object_id, processing_request.file_id
     )
     if asset_object_id is None:
         return JSONResponse(
@@ -81,7 +86,7 @@ async def process_document(
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
-                "file_id": request.file_id,
+                "file_id": processing_request.file_id,
                 "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value,
             },
         )
@@ -95,7 +100,7 @@ async def process_document(
         status_code=status.HTTP_201_CREATED,
         content={
             "project_id": project_id,
-            "file_id": request.file_id,
+            "file_id": processing_request.file_id,
             "chunks": [
                 {**chunk.model_dump(exclude={"object_id", "asset_id", "project_id"})}
                 for chunk in records
@@ -107,8 +112,9 @@ async def process_document(
 
 @document_router.post("/refresh", response_model=ProjectDocumentsRefreshResponse)
 async def refresh_project_documents(
+    request: Request,
     project_id: str,
-    request: ProjectDocumentsRefreshRequest,
+    refresh_request: ProjectDocumentsRefreshRequest,
     mongo_db: AsyncDatabase = Depends(get_db),
 ):
     """Refreshes all documents for a specific project by removing old chunks and reprocessing them.
@@ -119,6 +125,7 @@ async def refresh_project_documents(
     Returns:
         JSONResponse: The response containing the list of document processing results.
     """
+    settings = request.app.state.settings
     project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
     project_record = await project_model.get_project_by_id(project_id)
     if project_record is None or project_record.object_id is None:
@@ -133,7 +140,7 @@ async def refresh_project_documents(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
         )
-    document_controller = DocumentController(project_id=project_id)
+    document_controller = DocumentController(settings=settings, project_id=project_id)
     document_chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     await document_chunk_model.delete_chunks_by_project(project_record.object_id)
     processing_results = []
@@ -149,8 +156,8 @@ async def refresh_project_documents(
             continue
         chunks = document_controller.process_file(
             asset.name,
-            chunk_size=request.chunk_size,
-            chunk_overlap=request.chunk_overlap,
+            chunk_size=refresh_request.chunk_size,
+            chunk_overlap=refresh_request.chunk_overlap,
         )
         if not chunks:
             processing_results.append(
