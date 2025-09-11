@@ -3,7 +3,7 @@ Main application script for Lite-RAG-App
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from pymongo import AsyncMongoClient
 from routes.base import base_router
 from routes.assets import assets_router
@@ -12,7 +12,8 @@ from routes.documents import document_router
 from routes.vectors import vector_router
 from routes.rag import rag_router
 from config import get_settings, setup_logging
-from llm import LLMProviderFactory
+from llm.controllers.factory import LLMProviderFactory
+from llm.controllers.templates import TemplateController
 from vectordb import VectorDBProviderFactory
 
 
@@ -57,6 +58,11 @@ async def lifespan(fastapi_app: FastAPI):
     )
     if fastapi_app.state.vectordb_client is not None:
         await fastapi_app.state.vectordb_client.connect()
+
+    fastapi_app.state.template_controller = TemplateController(
+        primary_lang=fastapi_app.state.settings.primary_language,
+        fallback_lang=fastapi_app.state.settings.fallback_language,
+    )
 
     yield
 
