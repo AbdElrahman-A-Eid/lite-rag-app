@@ -22,3 +22,4 @@ class ResponseSignals(str, Enum):
     VECTOR_INDEXING_FAILED = "Vector Indexing Failed"
     VECTOR_INDEX_NOT_FOUND = "Vector Index Not Found"
     VECTOR_INDEX_EMPTY = "Vector Index is Empty"
+    RAG_GENERATION_FAILED = "RAG Generation Failed"
