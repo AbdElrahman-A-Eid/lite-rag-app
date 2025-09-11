@@ -9,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 from pydantic import Field, AnyUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from models.enums.log_level import LogLevel
+from llm.models.enums.locales import Locale
 
 
 class Settings(BaseSettings):
@@ -51,6 +52,9 @@ class Settings(BaseSettings):
     vectordb_backend: str
     vectordb_path: Path
     vectordb_distance_metric: str
+
+    primary_language: Locale
+    fallback_language: Locale
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="RAG_")
 
