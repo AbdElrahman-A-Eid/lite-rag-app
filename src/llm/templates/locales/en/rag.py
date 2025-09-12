@@ -21,11 +21,13 @@ SYSTEM_PROMPT = Template(
                 "Use three sentences maximum."
             ),
             (
-                "You **must** cite the context document index for each piece of information you use in your answer "
+                "You **must** cite the context document index for each piece of "
+                "information you use in your answer "
                 "in this strict format *[doc index]* (e.g., *[1]*) whenever applicable."
             ),
             (
-                "Use structured output whenever applicable to make your answer clear and easy to read. "
+                "Use structured output whenever applicable "
+                "to make your answer clear and easy to read. "
                 "(e.g., bullet points, numbered lists, tables, new lines, etc.)"
             ),
             "",
