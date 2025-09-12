@@ -62,14 +62,48 @@ If you don't have Anaconda or Miniconda installed:
 - Download from: https://www.anaconda.com/products/distribution
 - Follow the installation instructions for your operating system
 
-### 2. Clone the Repository
+### 2. Install Docker and Docker Compose
+
+If you don't have Docker and Docker Compose installed:
+
+**Docker Desktop (recommended for Windows and macOS):**
+- Download from: https://www.docker.com/products/docker-desktop/
+- Follow the installation instructions for your operating system
+- Docker Desktop includes Docker Compose automatically
+
+**Docker Engine (for Linux):**
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install docker.io docker-compose
+
+# CentOS/RHEL/Fedora
+sudo yum install docker docker-compose
+# or for newer versions:
+sudo dnf install docker docker-compose
+
+# Start and enable Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add your user to the docker group (optional, to run without sudo)
+sudo usermod -aG docker $USER
+```
+
+**Verify Docker installation:**
+```bash
+docker --version
+docker-compose --version
+```
+
+### 3. Clone the Repository
 
 ```bash
 git clone https://github.com/AbdElrahman-A-Eid/lite-rag-app.git
 cd lite-rag-app
 ```
 
-### 3. Create and Activate Conda Environment
+### 4. Create and Activate Conda Environment
 
 ```bash
 # Create a new conda environment with Python 3.12
@@ -79,11 +113,59 @@ conda create -n lite-rag python=3.12
 conda activate lite-rag
 ```
 
-### 4. Install Dependencies
+### 5. Install Dependencies
 
 ```bash
 # Install project dependencies
 pip install -r requirements.txt
+```
+
+### 6. Start MongoDB with Docker
+
+The application requires MongoDB for document metadata and project management:
+
+```bash
+# Navigate to the docker directory
+cd docker
+
+# Start MongoDB using Docker Compose
+docker-compose up -d
+
+# Verify MongoDB is running
+docker-compose ps
+```
+
+### 7. Run the Application
+
+```bash
+# Navigate to src directory and ensure conda environment is activated
+cd ../src
+conda activate lite-rag
+
+# Start the FastAPI application using uvicorn
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+The application will be available at:
+- **API**: http://localhost:8000
+- **Interactive API Documentation**: http://localhost:8000/docs
+- **Alternative API Documentation**: http://localhost:8000/redoc
+
+### 8. Verify Installation
+
+You can verify the installation by accessing the API documentation at http://localhost:8000/docs and checking that all endpoints are available.
+
+### 9. Stopping the Application
+
+To stop the application:
+
+```bash
+# Stop the FastAPI application
+# Press Ctrl+C in the terminal where uvicorn is running
+
+# Stop MongoDB (optional)
+cd ../docker
+docker-compose down
 ```
 
 ## Environment Configuration
