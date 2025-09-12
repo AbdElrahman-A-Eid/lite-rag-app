@@ -13,9 +13,40 @@ A lightweight Retrieval-Augmented Generation (RAG) application that combines doc
 
 ## Requirements
 
-- Python 3.12 (or later)
-- Anaconda or Miniconda
-- Git
+- **Python 3.12** (or later)
+- **Anaconda or Miniconda**
+- **Git**
+- **Docker & Docker Compose**
+
+### LLM Provider Support
+
+The application supports multiple LLM providers and systems:
+
+- **OpenAI** - GPT models via OpenAI API
+- **Cohere** - Cohere AI language models
+- **OpenAI-Compatible APIs** - Any system that implements OpenAI's API format, such as:
+  - **Ollama**
+  - **LocalAI**
+  - Other OpenAI-compatible endpoints
+
+*Note: You'll need appropriate API keys or access credentials for your chosen provider(s)*
+
+### Vector Database
+
+- **Qdrant** (embedded/local instance)
+  - Automatically managed by the application
+  - No separate installation required
+
+### Document Processing
+
+- **MongoDB**
+  - Used for document metadata and project management
+  - Configured through Docker Compose
+
+### Supported Document Formats
+
+- **PDF files** (.pdf)
+- **Text files** (.txt)
 
 ## Installation
 
