@@ -170,20 +170,158 @@ docker-compose down
 
 ## Environment Configuration
 
-1. Create your environment file from the template:
-   ```bash
-   cp .env.example .env
-   ```
+### 1. Application Environment Configuration
 
-2. Edit the `.env` file with your specific values:
-   ```bash
-   nano .env
-   # or use your preferred text editor
-   ```
+Create your application environment file from the template:
 
-**Environment Variables:**
-- `RAG_APP_NAME`: Name of your RAG application (default: Lite-RAG-App)
-- `RAG_APP_VERSION`: Current version of the application (default: 0.1.0)
+```bash
+# Navigate to src directory
+cd src
+
+# Copy the environment template
+cp .env.example .env
+```
+
+Edit the `.env` file with your specific configuration:
+
+```bash
+nano .env
+# or use your preferred text editor
+```
+
+**Required Environment Variables:**
+
+**Application Settings:**
+```env
+RAG_APP_NAME=Lite-RAG-App
+RAG_APP_VERSION=0.1.0
+RAG_LOG_LEVEL=INFO
+```
+
+**Database Configuration:**
+```env
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=lite_rag_app
+```
+
+**LLM Provider Configuration:**
+
+Choose and configure at least one LLM provider:
+
+*For OpenAI:*
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+```
+
+*For Cohere:*
+```env
+COHERE_API_KEY=your_cohere_api_key_here
+COHERE_API_BASE_URL=https://api.cohere.ai/v1
+```
+
+*For OpenAI-Compatible APIs (e.g., Ollama):*
+```env
+OPENAI_API_KEY=not_required_for_local
+OPENAI_API_BASE_URL=http://localhost:11434/v1
+```
+
+**Generation Settings (Optional):**
+```env
+GENERATION_DEFAULT_MAX_TOKENS=1000
+GENERATION_DEFAULT_TEMPERATURE=0.7
+DEFAULT_INPUT_MAX_CHARACTERS=4000
+```
+
+**Vector Database Settings (Optional):**
+```env
+QDRANT_VECTOR_SIZE=768
+QDRANT_DISTANCE_METRIC=COSINE
+```
+
+### 2. Docker Environment Configuration
+
+Configure the Docker environment for MongoDB:
+
+```bash
+# Navigate to docker directory
+cd docker
+
+# Copy the Docker environment template
+cp .env.example .env
+```
+
+Edit the Docker `.env` file:
+
+```bash
+nano .env
+# or use your preferred text editor
+```
+
+**Docker Environment Variables:**
+
+```env
+# MongoDB Configuration
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=your_secure_password_here
+MONGO_INITDB_DATABASE=lite_rag_app
+
+# MongoDB Connection (used by application)
+MONGODB_PORT=27017
+MONGODB_HOST=localhost
+```
+
+### 3. Environment Variable Descriptions
+
+**Application Environment (src/.env):**
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `RAG_APP_NAME` | Application name | Lite-RAG-App | No |
+| `RAG_APP_VERSION` | Application version | 0.1.0 | No |
+| `RAG_LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO | No |
+| `MONGODB_URL` | MongoDB connection string | mongodb://localhost:27017 | Yes |
+| `MONGODB_DATABASE` | MongoDB database name | lite_rag_app | No |
+| `OPENAI_API_KEY` | OpenAI API key | - | If using OpenAI |
+| `OPENAI_API_BASE_URL` | OpenAI API base URL | https://api.openai.com/v1 | No |
+| `COHERE_API_KEY` | Cohere API key | - | If using Cohere |
+| `COHERE_API_BASE_URL` | Cohere API base URL | https://api.cohere.ai/v1 | No |
+| `GENERATION_DEFAULT_MAX_TOKENS` | Default max tokens for generation | 1000 | No |
+| `GENERATION_DEFAULT_TEMPERATURE` | Default temperature for generation | 0.7 | No |
+| `DEFAULT_INPUT_MAX_CHARACTERS` | Max input characters | 4000 | No |
+| `QDRANT_VECTOR_SIZE` | Vector dimension size | 768 | No |
+| `QDRANT_DISTANCE_METRIC` | Distance metric for similarity | COSINE | No |
+
+**Docker Environment (docker/.env):**
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `MONGO_INITDB_ROOT_USERNAME` | MongoDB root username | admin | Yes |
+| `MONGO_INITDB_ROOT_PASSWORD` | MongoDB root password | - | Yes |
+| `MONGO_INITDB_DATABASE` | Initial MongoDB database | lite_rag_app | No |
+| `MONGODB_PORT` | MongoDB exposed port | 27017 | No |
+| `MONGODB_HOST` | MongoDB host | localhost | No |
+
+### 4. Provider-Specific Notes
+
+**OpenAI:**
+- Obtain API key from: https://platform.openai.com/api-keys
+- Standard OpenAI API endpoint is used by default
+
+**Cohere:**
+- Obtain API key from: https://dashboard.cohere.com/api-keys
+- Standard Cohere API endpoint is used by default
+
+**Ollama (Local):**
+- Install Ollama from: https://ollama.ai
+- Start Ollama service: `ollama serve`
+- Pull a model: `ollama pull <model-name>`  <!-- Replace `<model-name>` with your preferred model id -->
+- Set `OPENAI_API_BASE_URL=http://localhost:11434/v1`
+- API key can be any value for local usage
+
+**Other OpenAI-Compatible:**
+- Adjust `OPENAI_API_BASE_URL` to point to your service
+- Use appropriate authentication method for your service
 
 ## Project Structure
 
