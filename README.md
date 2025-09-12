@@ -76,39 +76,104 @@ pip install -r requirements.txt
 
 ```
 lite-rag-app/
-├── src/                     # Main application source code
-│   ├── assets/              # Static assets and resources
-│   ├── controllers/         # Business logic controllers
-│   │   ├── __init__.py      # Controllers module initialization
-│   │   ├── base.py          # Base controller class
-│   │   ├── documents.py     # Document processing controller
-│   │   ├── files.py         # File management controller
-│   │   └── projects.py      # Project management controller
-│   ├── models/              # Data models and enums
-│   │   ├── enums/           # Application enumerations
-│   │   │   ├── __init__.py  # Enums module initialization
-│   │   │   ├── documents.py # Document-related enums
-│   │   │   ├── log_level.py # Logging level enums
-│   │   │   └── responses.py # Response signal enums
-│   │   └── __init__.py      # Models module initialization
-│   ├── routes/              # API route definitions
-│   │   ├── schemas/         # Pydantic request/response schemas
-│   │   │   ├── __init__.py  # Schemas module initialization
-│   │   │   ├── documents.py # Document-related schemas
-│   │   │   ├── files.py     # File-related schemas
-│   │   │   └── projects.py  # Project-related schemas
-│   │   ├── __init__.py      # Routes module initialization
-│   │   ├── base.py          # Base route definitions
-│   │   ├── documents.py     # Document-related routes
-│   │   ├── files.py         # File-related routes
-│   │   └── projects.py      # Project-related routes
-│   ├── .env.example         # Environment variables template
-│   ├── .gitignore           # Git ignore file
-│   ├── config.py            # Application configuration
-│   ├── main.py              # Application entry point
-│   └── requirements.txt     # Python dependencies
-├── LICENSE                  # MIT License
-└── README.md                # Project documentation
+├── docker/                       # Docker configuration
+│   ├── .env.example              # Docker environment template
+│   ├── .gitignore                # Docker-specific gitignore
+│   └── compose.yml               # Docker Compose configuration
+├── src/                          # Main application source code
+│   ├── assets/                   # Application assets and data storage
+│   │   ├── databases/            # Vector database storage
+│   │   ├── files/                # Uploaded project files storage
+│   │   └── logs/                 # Application log files
+│   ├── controllers/              # Business logic controllers
+│   │   ├── __init__.py           # Controllers module initialization
+│   │   ├── assets.py             # Asset management controller
+│   │   ├── base.py               # Base controller class
+│   │   ├── documents.py          # Document processing controller
+│   │   ├── projects.py           # Project management controller
+│   │   ├── rag.py                # RAG operations controller
+│   │   └── vectors.py            # Vector operations controller
+│   ├── llm/                      # Large Language Model integration
+│   │   ├── controllers/          # LLM controllers
+│   │   │   ├── __init__.py       # LLM controllers initialization
+│   │   │   ├── factory.py        # LLM provider factory
+│   │   │   └── templates.py      # Template management controller
+│   │   ├── models/               # LLM data models
+│   │   │   ├── enums/            # LLM enumerations
+│   │   │   │   ├── __init__.py   # LLM enums initialization
+│   │   │   │   ├── inputs.py     # Input type enums
+│   │   │   │   ├── locales.py    # Locale enums
+│   │   │   │   ├── providers.py  # LLM provider enums
+│   │   │   │   └── roles.py      # Message role enums
+│   │   │   ├── __init__.py       # LLM models initialization
+│   │   │   └── base.py           # Base LLM interfaces
+│   │   ├── providers/            # LLM provider implementations
+│   │   │   ├── __init__.py       # Providers initialization
+│   │   │   ├── cohere_provider.py # Cohere LLM implementation
+│   │   │   └── openai_provider.py # OpenAI LLM implementation
+│   │   ├── templates/            # LLM prompt templates
+│   │   │   ├── locales/          # Localized templates
+│   │   │   │   ├── ar/           # Arabic templates
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   └── rag.py    # Arabic RAG templates
+│   │   │   │   ├── en/           # English templates
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   └── rag.py    # English RAG templates
+│   │   │   │   └── __init__.py   # Locales initialization
+│   │   │   └── __init__.py       # Templates initialization
+│   │   └── __init__.py           # LLM module initialization
+│   ├── models/                   # Data models and schemas
+│   │   ├── enums/                # Application enumerations
+│   │   │   ├── __init__.py       # Enums module initialization
+│   │   │   ├── assets.py         # Asset-related enums
+│   │   │   ├── collections.py    # Database collection enums
+│   │   │   ├── documents.py      # Document-related enums
+│   │   │   ├── log_level.py      # Logging level enums
+│   │   │   └── responses.py      # Response signal enums
+│   │   ├── __init__.py           # Models module initialization
+│   │   ├── asset.py              # Asset data models
+│   │   ├── base.py               # Base model classes
+│   │   ├── chunk.py              # Document chunk models
+│   │   ├── project.py            # Project data models
+│   │   └── vector.py             # Vector data models
+│   ├── routes/                   # API route definitions
+│   │   ├── schemas/              # Pydantic request/response schemas
+│   │   │   ├── __init__.py       # Schemas module initialization
+│   │   │   ├── assets.py         # Asset-related schemas
+│   │   │   ├── documents.py      # Document-related schemas
+│   │   │   ├── projects.py       # Project-related schemas
+│   │   │   ├── rag.py            # RAG-related schemas
+│   │   │   └── vectors.py        # Vector-related schemas
+│   │   ├── __init__.py           # Routes module initialization
+│   │   ├── assets.py             # Asset-related routes
+│   │   ├── base.py               # Base route definitions
+│   │   ├── documents.py          # Document-related routes
+│   │   ├── projects.py           # Project-related routes
+│   │   ├── rag.py                # RAG-related routes
+│   │   └── vectors.py            # Vector-related routes
+│   ├── vectordb/                 # Vector database integration
+│   │   ├── controllers/          # Vector DB controllers
+│   │   │   ├── __init__.py       # Controllers initialization
+│   │   │   └── factory.py        # Vector DB factory
+│   │   ├── models/               # Vector DB models
+│   │   │   ├── enums/            # Vector DB enumerations
+│   │   │   │   ├── __init__.py   # Vector DB enums initialization
+│   │   │   │   ├── providers.py  # Vector DB provider enums
+│   │   │   │   └── similarities.py # Similarity metric enums
+│   │   │   ├── __init__.py       # Vector DB models initialization
+│   │   │   └── base.py           # Base vector DB interfaces
+│   │   ├── providers/            # Vector DB provider implementations
+│   │   │   ├── __init__.py       # Providers initialization
+│   │   │   └── qdrant_provider.py # Qdrant vector DB implementation
+│   │   └── __init__.py           # Vector DB module initialization
+│   ├── .env.example              # Environment variables template
+│   ├── .gitignore                # Git ignore file
+│   ├── config.py                 # Application configuration
+│   ├── dependencies.py           # FastAPI dependency injections
+│   ├── main.py                   # Application entry point
+│   └── requirements.txt          # Python dependencies
+├── LICENSE                       # MIT License
+└── README.md                     # Project documentation
 ```
 
 ## Usage
