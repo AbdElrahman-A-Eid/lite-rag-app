@@ -194,7 +194,7 @@ nano .env
 **Application Settings:**
 ```env
 RAG_APP_NAME=Lite-RAG-App
-RAG_APP_VERSION=0.1.0
+RAG_APP_VERSION=1.0.0
 RAG_LOG_LEVEL=INFO
 ```
 
@@ -278,7 +278,7 @@ MONGODB_HOST=localhost
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `RAG_APP_NAME` | Application name | Lite-RAG-App | No |
-| `RAG_APP_VERSION` | Application version | 0.1.0 | No |
+| `RAG_APP_VERSION` | Application version | 1.0.0 | No |
 | `RAG_LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO | No |
 | `MONGODB_URL` | MongoDB connection string | mongodb://localhost:27017 | Yes |
 | `MONGODB_DATABASE` | MongoDB database name | lite_rag_app | No |
