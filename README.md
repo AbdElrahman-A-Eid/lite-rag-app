@@ -429,7 +429,326 @@ lite-rag-app/
 
 ## Usage
 
-*Coming soon - usage instructions will be added as the project develops*
+### 1. Getting Started
+
+After completing the installation and environment configuration, you can start using the RAG application through the interactive API documentation or direct API calls.
+
+### 2. Access the API Documentation
+
+Navigate to the interactive API documentation:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+### 3. Basic Workflow
+
+The typical workflow involves these steps:
+
+1. **Create a Project** - Organize your documents into projects
+2. **Upload Documents** - Add PDF or text files to your project
+3. **Process Documents** - Convert documents into searchable chunks
+4. **Index Vectors** - Create embeddings and store them in the vector database
+5. **Perform RAG Queries** - Ask questions and get contextual responses
+
+### 4. Available API Endpoints
+
+#### Base Endpoints
+
+**`GET /api/v1/`** - Root endpoint
+- Returns application name and version
+
+**`GET /api/v1/health`** - Health check endpoint
+- Returns application health status
+
+#### Project Management
+
+**`POST /api/v1/projects/create`** - Create a new project
+- **Optional**: `name` (string), `description` (string, max 500 chars)
+- **Response**: 201 Created with project details
+
+**`GET /api/v1/projects/list`** - List all projects
+- **Optional**: `skip` (integer, default: 0), `limit` (integer, default: 10, max: 100)
+- **Response**: 200 OK with projects list, count, and total
+
+**`GET /api/v1/projects/{project_id}`** - Get project details
+- **Required**: `project_id` (path parameter)
+- **Response**: 200 OK with project details, 404 if not found
+
+**`DELETE /api/v1/projects/{project_id}`** - Delete project
+- **Required**: `project_id` (path parameter)
+- **Response**: 204 No Content, 404 if not found
+
+#### Asset Management
+
+**`POST /api/v1/p/{project_id}/assets/upload`** - Upload single file
+- **Required**: `project_id` (path parameter), `file` (multipart/form-data)
+- **Supported formats**: PDF (.pdf), Text (.txt)
+- **Response**: 200 OK with asset details, 400/404/500 for errors
+
+**`POST /api/v1/p/{project_id}/assets/upload/batch`** - Upload multiple files
+- **Required**: `project_id` (path parameter), `files` (list of multipart/form-data)
+- **Response**: 200 OK with batch upload results
+
+**`GET /api/v1/p/{project_id}/assets/`** - List project assets
+- **Required**: `project_id` (path parameter)
+- **Response**: 200 OK with assets list and count
+
+**`DELETE /api/v1/p/{project_id}/assets/{asset_id}`** - Delete specific asset
+- **Required**: `project_id` (path parameter), `asset_id` (path parameter)
+- **Response**: 204 No Content, 404 if not found
+
+**`DELETE /api/v1/p/{project_id}/assets/`** - Delete all project assets
+- **Required**: `project_id` (path parameter)
+- **Response**: 204 No Content, 404 if not found
+
+#### Document Processing
+
+**`POST /api/v1/p/{project_id}/documents/process`** - Process document into chunks
+- **Required**: `project_id` (path parameter), `file_id` (string)
+- **Optional**: `chunk_size` (integer, default: 300, min: 1), `chunk_overlap` (integer, default: 40, min: 0)
+- **Response**: 201 Created with chunks details
+
+**`POST /api/v1/p/{project_id}/documents/refresh`** - Refresh all project documents
+- **Required**: `project_id` (path parameter)
+- **Optional**: `chunk_size` (integer, default: 300), `chunk_overlap` (integer, default: 40)
+- **Response**: 201 Created with processing results for all assets
+
+**`GET /api/v1/p/{project_id}/documents/{file_id}/list`** - List document chunks
+- **Required**: `project_id` (path parameter), `file_id` (path parameter)
+- **Optional**: `skip` (integer, default: 0), `limit` (integer, default: 100, max: 300)
+- **Response**: 200 OK with chunks list, count, and total
+
+**`DELETE /api/v1/p/{project_id}/documents/{file_id}`** - Delete document chunks
+- **Required**: `project_id` (path parameter), `file_id` (path parameter)
+- **Response**: 204 No Content, 404 if not found
+
+#### Vector Operations
+
+**`POST /api/v1/p/{project_id}/vectors/index`** - Index document vectors
+- **Required**: `project_id` (path parameter)
+- **Optional**: `reset` (boolean, default: false)
+- **Response**: 201 Created on success, 404/500 for errors
+
+**`POST /api/v1/p/{project_id}/vectors/query`** - Query similar vectors
+- **Required**: `project_id` (path parameter), `query` (string)
+- **Optional**: `top_k` (integer, default: 5, min: 1), `threshold` (float, range: 0.0-1.0)
+- **Response**: 200 OK with results and count
+
+#### RAG Operations
+
+**`POST /api/v1/p/{project_id}/rag/generate`** - Generate RAG response
+- **Required**: `project_id` (path parameter), `query` (string)
+- **Optional**: 
+  - `top_k` (integer, default: 5, min: 1)
+  - `threshold` (float, range: 0.0-1.0)
+  - `temperature` (float, range: 0.0-2.0)
+  - `max_output_tokens` (integer, min: 1)
+- **Response**: 202 Accepted with response, citations, and contexts
+
+### 5. Request/Response Examples
+
+#### Project Creation
+**`POST /api/v1/projects/create`**
+
+**Request Body:**
+```json
+{
+  "name": "Research Papers",
+  "description": "Academic papers on machine learning"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "1867260d-cf8e-4535-9441-54988ad100e3",
+  "name": "Research Papers", 
+  "description": "Academic papers on machine learning"
+}
+```
+
+#### Document Processing
+**`POST /api/v1/p/1867260d-cf8e-4535-9441-54988ad100e3/documents/process`**
+
+**Request Body:**
+```json
+{
+  "file_id": "70e865ce_document_filename.pdf",
+  "chunk_size": 500,
+  "chunk_overlap": 50
+}
+```
+
+**Response:**
+```json
+{
+  "project_id": "1867260d-cf8e-4535-9441-54988ad100e3",
+  "file_id": "70e865ce_document_filename.pdf",
+  "chunks": [
+    {
+      "chunk_order": 0,
+      "page_content": "Document content...",
+      "metadata": {
+        ...
+      }
+    }
+  ],
+  "count": 1
+}
+```
+
+#### Vector Indexing
+**`POST /api/v1/p/1867260d-cf8e-4535-9441-54988ad100e3/vectors/index`**
+
+**Request Body:**
+```json
+{
+  "reset": false
+}
+```
+
+#### RAG Query
+**`POST /api/v1/p/1867260d-cf8e-4535-9441-54988ad100e3/rag/generate`**
+
+**Request Body:**
+```json
+{
+  "query": "What machine learning techniques are discussed?",
+  "top_k": 5,
+  "threshold": 0.7,
+  "temperature": 0.7,
+  "max_output_tokens": 1000
+}
+```
+
+**Response:**
+```json
+{
+  "response": "Based on the provided documents, the main machine learning techniques include...",
+  "citations": [
+    {
+      "text": "Relevant text from the document...",
+      "metadata": {
+        ...
+      }
+    }
+  ],
+  "contexts": [
+    {
+      "text": "Context document content...",
+      "metadata": {
+        ...
+      }
+    }
+  ]
+}
+```
+
+### 6. Parameter Reference
+
+#### Common Parameters
+
+| Parameter | Type | Description | Default | Range/Notes |
+|-----------|------|-------------|---------|-------------|
+| `project_id` | string | Project identifier | - | Path parameter |
+| `file_id` | string | File/asset identifier | - | Usually filename |
+| `asset_id` | string | Asset identifier | - | System-generated |
+| `chunk_size` | integer | Document chunk size | 300 | Min: 1 |
+| `chunk_overlap` | integer | Overlap between chunks | 40 | Min: 0 |
+| `top_k` | integer | Number of results to return | 5 | Min: 1 |
+| `threshold` | float | Similarity threshold | - | Range: 0.0-1.0 |
+| `temperature` | float | LLM response creativity | - | Range: 0.0-2.0 |
+| `max_output_tokens` | integer | Maximum response tokens | - | Min: 1 |
+| `reset` | boolean | Reset index before indexing | false | - |
+| `skip` | integer | Number of items to skip | 0 | For pagination |
+| `limit` | integer | Maximum items to return | varies | Max limits vary by endpoint |
+
+### 7. Best Practices
+
+#### Document Upload
+- Use descriptive file names for better organization
+- Ensure PDF files have selectable text (not scanned images)
+- Supported formats: PDF (.pdf) and Text (.txt) files
+
+#### Document Processing
+- Adjust `chunk_size` based on document type (300-1000 for most documents)
+- Use appropriate `chunk_overlap` (10-20% of chunk_size) to maintain context
+- Process documents before attempting to index vectors
+
+#### Vector Operations
+- Always process documents before indexing vectors
+- Use `reset: true` when you want to completely rebuild the index
+- Query vectors to test retrieval before using RAG
+
+#### RAG Queries
+- Start with higher similarity thresholds (0.7-0.8) for precise matches
+- Lower thresholds (0.5-0.6) for broader topic exploration
+- Adjust `top_k` based on query complexity (3-5 for simple, 5-10 for complex)
+- Fine-tune `temperature` for desired response style (0.1-0.3 for factual, 0.7-1.0 for creative)
+
+### 8. Common Response Codes
+
+| Code | Description | When It Occurs |
+|------|-------------|----------------|
+| 200 | OK | Successful GET requests |
+| 201 | Created | Successful POST operations (creation/processing) |
+| 202 | Accepted | Successful RAG generation |
+| 204 | No Content | Successful DELETE operations |
+| 400 | Bad Request | Invalid file format or parameters |
+| 404 | Not Found | Project/asset/file not found |
+| 422 | Validation Error | Invalid request body structure |
+| 500 | Internal Server Error | Processing failures, missing templates |
+
+### 9. Error Messages
+
+The application uses standardized error messages through `ResponseSignals`. Common error messages include:
+
+- `PROJECT_NOT_FOUND` - The specified project doesn't exist
+- `ASSET_NOT_FOUND` - The specified asset/file doesn't exist  
+- `DOCUMENT_PROCESSING_FAILED` - Document processing failed
+- `VECTOR_INDEXING_FAILED` - Vector indexing operation failed
+- `VECTOR_INDEX_NOT_FOUND` - No vector index exists for the project
+- `VECTOR_INDEX_EMPTY` - Vector index exists but has no vectors
+- `RAG_GENERATION_FAILED` - RAG response generation failed
+- `CHUNK_NOT_FOUND` - No document chunks found
+
+### 10. Troubleshooting
+
+#### Common Issues
+
+**Upload failures (400):**
+- Verify file format is PDF or TXT
+- Check file is not corrupted
+- Ensure project exists before uploading
+
+**Processing errors (500):**
+- Confirm uploaded file is readable (for PDFs, text must be selectable)
+- Verify asset exists in the project
+- Check application logs for detailed error information
+
+**Vector indexing failures:**
+- Ensure documents have been processed into chunks first
+- Check that chunks exist for the project
+- Verify embedding model is properly configured
+
+**Empty RAG responses:**
+- Confirm vector index exists and contains vectors
+- Try lowering similarity threshold (0.5-0.6)
+- Ensure query relates to document content
+- Check that LLM provider is properly configured with valid API keys
+
+**Template errors in RAG:**
+- Verify template files exist in `src/llm/templates/locales/en/`
+- Check template controller configuration
+- Review application logs for missing template errors
+
+#### Getting Help
+
+For detailed error information:
+- Check the interactive API documentation at http://localhost:8000/docs
+- Review application logs in `src/assets/logs/app.log`
+- Use the "Try it out" feature in Swagger UI for testing endpoints
+- Check MongoDB and application status with `docker-compose logs`
+- Verify environment configuration matches requirements
 
 ## Future Work
    - Add support for local [Unstructured Loader](https://python.langchain.com/docs/integrations/document_loaders/unstructured_file/)
@@ -437,4 +756,3 @@ lite-rag-app/
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
