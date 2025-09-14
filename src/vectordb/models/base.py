@@ -2,8 +2,9 @@
 Base classes for all Vector DB providers.
 """
 
-from typing import Optional, List, Dict
 from abc import ABC, abstractmethod
+from typing import Dict, List, Optional
+
 from models.vector import RetrievedDocumentChunk
 
 

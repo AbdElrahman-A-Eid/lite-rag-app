@@ -3,17 +3,19 @@ Projects API routes for Lite-RAG-App
 """
 
 from typing import Optional
-from fastapi import APIRouter, status, Depends, Request
+
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
-from dependencies import get_db
+
 from controllers import ProjectController
-from models.project import ProjectModel, Project
+from dependencies import get_db
 from models.enums import ResponseSignals
+from models.project import Project, ProjectModel
 from routes.schemas import (
+    ProjectCreationRequest,
     ProjectCreationResponse,
     ProjectListResponse,
-    ProjectCreationRequest,
 )
 
 projects_router = APIRouter(prefix="/api/v1/projects", tags=["projects", "v1"])

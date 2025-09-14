@@ -2,8 +2,9 @@
 Controllers for project management operations.
 """
 
-from uuid import uuid4
 from typing import List
+from uuid import uuid4
+
 from config import Settings
 from controllers.base import BaseController
 

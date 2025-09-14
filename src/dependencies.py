@@ -3,8 +3,9 @@ Dependencies for the application.
 """
 
 from typing import AsyncGenerator
-from pymongo import AsyncMongoClient
+
 from fastapi import Request
+from pymongo import AsyncMongoClient
 
 
 async def get_db(request: Request) -> AsyncGenerator[AsyncMongoClient, None]:

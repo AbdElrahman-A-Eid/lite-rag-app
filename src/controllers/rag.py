@@ -2,8 +2,8 @@
 Controllers for managing RAG operations.
 """
 
-from typing import List, Optional
 import re
+from typing import List, Optional
 
 from config import Settings
 from controllers.base import BaseController

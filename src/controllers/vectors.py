@@ -3,12 +3,13 @@ Controllers for managing Vector operations.
 """
 
 from typing import List, Optional
+
 from config import Settings
 from controllers.base import BaseController
-from models.chunk import DocumentChunk
-from models.vector import RetrievedDocumentChunk
 from llm.models.base import LLMProviderInterface
 from llm.models.enums.inputs import InputType
+from models.chunk import DocumentChunk
+from models.vector import RetrievedDocumentChunk
 from vectordb.models import VectorDBProviderInterface
 
 
@@ -105,7 +106,9 @@ class VectorController(BaseController):
         index_name = self._construct_index_name(project_id)
         self.logger.info("Querying vectors for project: '%s'...", project_id)
 
-        query_vector = await self.embedding_model.embed(query, input_type=InputType.QUERY)
+        query_vector = await self.embedding_model.embed(
+            query, input_type=InputType.QUERY
+        )
         normalized_query_vector = self._normalize_vectors(query_vector)[0]
         relevant_vectors = await self.vectordb_client.query_vectors(
             index_name,

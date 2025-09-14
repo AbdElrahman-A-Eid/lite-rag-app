@@ -3,17 +3,19 @@ Main application script for Lite-RAG-App
 """
 
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from pymongo import AsyncMongoClient
-from routes.base import base_router
-from routes.assets import assets_router
-from routes.projects import projects_router
-from routes.documents import document_router
-from routes.vectors import vector_router
-from routes.rag import rag_router
+
 from config import get_settings, setup_logging
 from llm.controllers.factory import LLMProviderFactory
 from llm.controllers.templates import TemplateController
+from routes.assets import assets_router
+from routes.base import base_router
+from routes.documents import document_router
+from routes.projects import projects_router
+from routes.rag import rag_router
+from routes.vectors import vector_router
 from vectordb import VectorDBProviderFactory
 
 

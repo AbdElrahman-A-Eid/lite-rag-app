@@ -3,11 +3,13 @@ Controller for document-related operations.
 """
 
 from pathlib import Path
-from typing import Optional, List, Tuple, Dict
-from langchain_core.documents import Document
+from typing import Dict, List, Optional, Tuple
+
+from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 from langchain_core.document_loaders import BaseLoader
-from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from config import Settings
 from controllers.base import BaseController
 from models.enums import DocumentFileType

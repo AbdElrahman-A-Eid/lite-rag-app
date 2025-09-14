@@ -2,12 +2,12 @@
 Model definition for a document chunk.
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-from pymongo import InsertOne, IndexModel
-from pymongo.asynchronous.database import AsyncDatabase
 from bson.objectid import ObjectId
+from pydantic import BaseModel, ConfigDict, Field
+from pymongo import IndexModel, InsertOne
+from pymongo.asynchronous.database import AsyncDatabase
 
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames

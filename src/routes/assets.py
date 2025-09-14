@@ -3,16 +3,18 @@ Assets API routes for Lite-RAG-App
 """
 
 from typing import List
-from fastapi import APIRouter, status, UploadFile, Depends, Request
+
+from fastapi import APIRouter, Depends, Request, UploadFile, status
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
+
 from controllers import FileController, ProjectController
-from routes.schemas import AssetPushResponse, AssetListResponse, BatchAssetsPushResponse
-from models.asset import AssetModel, Asset
-from models.project import ProjectModel
-from models.chunk import DocumentChunkModel
-from models.enums import ResponseSignals, AssetType
 from dependencies import get_db
+from models.asset import Asset, AssetModel
+from models.chunk import DocumentChunkModel
+from models.enums import AssetType, ResponseSignals
+from models.project import ProjectModel
+from routes.schemas import AssetListResponse, AssetPushResponse, BatchAssetsPushResponse
 
 assets_router = APIRouter(prefix="/api/v1/p/{project_id}/assets", tags=["assets", "v1"])
 

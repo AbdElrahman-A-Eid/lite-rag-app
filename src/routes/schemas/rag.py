@@ -2,8 +2,10 @@
 Pydantic schemas for RAG-related requests and responses.
 """
 
-from typing import Optional, List
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
+
 from models.vector import RetrievedDocumentChunk
 
 

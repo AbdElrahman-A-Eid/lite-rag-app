@@ -2,12 +2,14 @@
 Model definitions for assets.
 """
 
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from bson.objectid import ObjectId
+from pydantic import BaseModel, ConfigDict, Field
 from pymongo import IndexModel, InsertOne
 from pymongo.asynchronous.database import AsyncDatabase
-from bson.objectid import ObjectId
-from pydantic import BaseModel, Field, ConfigDict
+
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
 

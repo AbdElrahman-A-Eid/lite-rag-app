@@ -3,8 +3,10 @@ Concrete implementation of the Cohere LLM provider.
 """
 
 from enum import Enum
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
+
 from cohere import AsyncClientV2
+
 from llm.models.base import BaseLLMProvider
 from llm.models.enums.inputs import InputType
 
@@ -43,7 +45,9 @@ class CohereProvider(BaseLLMProvider):
         )
         self.api_key = api_key
         self.base_url = base_url if base_url else None
-        self.client = AsyncClientV2(api_key=self.api_key, base_url=self.base_url, **kwargs)
+        self.client = AsyncClientV2(
+            api_key=self.api_key, base_url=self.base_url, **kwargs
+        )
         self.enums = CohereMessageRoles
 
     def process_text(self, text: str) -> str:
@@ -78,7 +82,9 @@ class CohereProvider(BaseLLMProvider):
         """
         if role not in (e.value for e in self.enums):
             self.logger.error(
-                "Invalid role: %s. Must be one of %s.", role, [e.value for e in self.enums]
+                "Invalid role: %s. Must be one of %s.",
+                role,
+                [e.value for e in self.enums],
             )
             role = self.enums.USER.value
         return {"role": role, "content": self.process_text(prompt)}

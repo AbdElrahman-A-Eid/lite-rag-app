@@ -3,13 +3,15 @@ Configuration settings for Lite-RAG-App
 """
 
 import logging
-from pathlib import Path
-from typing import Optional, List
 from logging.handlers import RotatingFileHandler
-from pydantic import Field, AnyUrl
+from pathlib import Path
+from typing import List, Optional
+
+from pydantic import AnyUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from models.enums.log_level import LogLevel
+
 from llm.models.enums.locales import Locale
+from models.enums.log_level import LogLevel
 
 
 class Settings(BaseSettings):

@@ -4,7 +4,6 @@ Retrieval-Augmented Generation (RAG) templates in Arabuc.
 
 from string import Template
 
-
 SYSTEM_PROMPT = Template(
     "\n".join(
         [

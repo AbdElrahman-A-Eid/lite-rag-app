@@ -2,16 +2,17 @@
 API routes for RAG-related operations.
 """
 
-from fastapi import APIRouter, Request, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
-from controllers.vectors import VectorController
+
 from controllers.rag import RAGController
-from models.project import ProjectModel
-from models.enums.responses import ResponseSignals
-from llm.controllers.templates import TemplateController
-from routes.schemas.rag import RAGQueryRequest, RAGQueryResponse
+from controllers.vectors import VectorController
 from dependencies import get_db
+from llm.controllers.templates import TemplateController
+from models.enums.responses import ResponseSignals
+from models.project import ProjectModel
+from routes.schemas.rag import RAGQueryRequest, RAGQueryResponse
 
 rag_router = APIRouter(prefix="/api/v1/p/{project_id}/rag", tags=["rag", "v1"])
 

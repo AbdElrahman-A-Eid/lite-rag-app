@@ -4,13 +4,11 @@ Concrete implementation of Vector DB Provider using Qdrant.
 
 import logging
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
+
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import (
-    Distance,
-    VectorParams,
-    CollectionDescription,
-)
+from qdrant_client.models import CollectionDescription, Distance, VectorParams
+
 from models.vector import RetrievedDocumentChunk
 from vectordb.models import VectorDBProviderInterface
 from vectordb.models.enums import SimilarityMetric
@@ -212,7 +210,7 @@ class QdrantProvider(VectorDBProviderInterface):
                 Defaults to None.
             batch_size (int, optional): The number of vectors to insert per batch. \
                 Defaults to 64.
-        
+
         Returns:
             bool: True if the vectors were inserted successfully, False otherwise.
         """

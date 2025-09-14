@@ -3,6 +3,7 @@ Base API routes for Lite-RAG-App
 """
 
 from typing import Dict
+
 from fastapi import APIRouter, Request
 
 base_router = APIRouter(prefix="/api/v1", tags=["base", "v1"])

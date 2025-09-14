@@ -4,10 +4,11 @@ Factory class for creating Vector DB Provider instances.
 
 import logging
 from typing import Optional
+
 from config import Settings
 from vectordb.models import VectorDBProviderInterface
+from vectordb.models.enums import SimilarityMetric, VectorDBProvider
 from vectordb.providers import QdrantProvider
-from vectordb.models.enums import VectorDBProvider, SimilarityMetric
 
 
 class VectorDBProviderFactory:

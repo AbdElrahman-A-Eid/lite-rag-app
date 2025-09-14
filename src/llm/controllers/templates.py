@@ -3,9 +3,10 @@ Controllers for managing templates in the LLM application.
 """
 
 import logging
-from string import Template
-from typing import Optional, Dict, Any
 from pathlib import Path
+from string import Template
+from typing import Any, Dict, Optional
+
 from llm.models.enums.locales import Locale
 
 

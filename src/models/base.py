@@ -3,10 +3,11 @@ Base model for all database entities.
 """
 
 import logging
-from typing import Union, Annotated, Optional
+from typing import Annotated, Optional, Union
+
+from bson.objectid import ObjectId
 from pydantic import BeforeValidator, PlainSerializer
 from pymongo.asynchronous.database import AsyncDatabase
-from bson.objectid import ObjectId
 
 
 def validate_object_id(v: Union[str, ObjectId, None]) -> Optional[ObjectId]:

@@ -2,22 +2,23 @@
 API routes for document-related operations.
 """
 
-from fastapi import APIRouter, status, Depends, Request
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
+
 from controllers import DocumentController, FileController
+from dependencies import get_db
+from models.chunk import DocumentChunk, DocumentChunkModel
+from models.enums import ResponseSignals
+from models.project import AssetModel, ProjectModel
 from routes.schemas import (
+    ChunkResponse,
+    DocumentListResponse,
     DocumentProcessingRequest,
     DocumentProcessingResponse,
-    DocumentListResponse,
     ProjectDocumentsRefreshRequest,
     ProjectDocumentsRefreshResponse,
-    ChunkResponse,
 )
-from models.chunk import DocumentChunk, DocumentChunkModel
-from models.project import ProjectModel, AssetModel
-from models.enums import ResponseSignals
-from dependencies import get_db
 
 document_router = APIRouter(
     prefix="/api/v1/p/{project_id}/documents", tags=["documents", "v1"]

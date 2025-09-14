@@ -3,8 +3,10 @@ Concrete implementation of the OpenAI LLM provider.
 """
 
 from enum import Enum
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
+
 from openai import AsyncOpenAI
+
 from llm.models.base import BaseLLMProvider
 from llm.models.enums.inputs import InputType
 
@@ -38,7 +40,9 @@ class OpenAIProvider(BaseLLMProvider):
         )
         self.api_key = api_key
         self.base_url = base_url
-        self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url, **kwargs)
+        self.client = AsyncOpenAI(
+            api_key=self.api_key, base_url=self.base_url, **kwargs
+        )
         self.enums = OpenAIMessageRoles
 
     def process_text(self, text: str) -> str:
@@ -73,7 +77,9 @@ class OpenAIProvider(BaseLLMProvider):
         """
         if role not in (e.value for e in self.enums):
             self.logger.error(
-                "Invalid role: %s. Must be one of %s.", role, [e.value for e in self.enums]
+                "Invalid role: %s. Must be one of %s.",
+                role,
+                [e.value for e in self.enums],
             )
             role = self.enums.USER.value
         return {"role": role, "content": self.process_text(prompt)}

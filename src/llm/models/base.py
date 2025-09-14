@@ -3,8 +3,9 @@ Base classes for all LLM providers.
 """
 
 import logging
-from typing import Optional, List, Dict
 from abc import ABC, abstractmethod
+from typing import Dict, List, Optional
+
 from llm.models.enums.inputs import InputType
 
 

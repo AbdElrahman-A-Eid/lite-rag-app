@@ -2,14 +2,16 @@
 Model definitions for projects.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from bson.objectid import ObjectId
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pymongo import IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
-from bson.objectid import ObjectId
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+
+from models.asset import AssetModel
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
-from models.asset import AssetModel
 
 
 class Project(BaseModel):

@@ -2,20 +2,21 @@
 API routes for vector-related operations.
 """
 
-from fastapi import APIRouter, Request, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
+
+from controllers import VectorController
+from dependencies import get_db
+from models.chunk import DocumentChunkModel
+from models.enums import ResponseSignals
+from models.project import ProjectModel
 from routes.schemas import (
     VectorIndexRequest,
     VectorIndexResponse,
     VectorQueryRequest,
     VectorQueryResponse,
 )
-from controllers import VectorController
-from models.project import ProjectModel
-from models.chunk import DocumentChunkModel
-from models.enums import ResponseSignals
-from dependencies import get_db
 
 vector_router = APIRouter(
     prefix="/api/v1/p/{project_id}/vectors", tags=["vectors", "v1"]
