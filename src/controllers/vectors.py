@@ -140,7 +140,13 @@ class VectorController(BaseController):
         for metadata, chunk in zip(metadatas, chunks):
             metadata["chunk_asset"] = str(chunk.asset_id)
             metadata["chunk_order"] = chunk.chunk_order
-        vectors = self.embedding_model.embed(texts, input_type=InputType.DOCUMENT)
+        vectors = []
+        for i in range(0, len(texts), 64):
+            batch_texts = texts[i : i + 64]
+            batch_vectors = self.embedding_model.embed(
+                batch_texts, input_type=InputType.DOCUMENT
+            )
+            vectors.extend(self._normalize_vectors(batch_vectors))
         normalized_vectors = self._normalize_vectors(vectors)
 
         return await self.vectordb_client.insert_vectors(
