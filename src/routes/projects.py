@@ -93,12 +93,15 @@ async def get_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)
 
 
 @projects_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)):
+async def delete_project(project_id: str, request: Request, mongo_db: AsyncDatabase = Depends(get_db)):
     """
     Deletes a specific project by its ID.
     """
+    settings = request.app.state.settings
     project_model = await ProjectModel.create_instance(mongo_db)
     deletion_status = await project_model.delete_project(project_id)
+    if deletion_status:
+        ProjectController(settings).delete_project_folder(project_id)
     if not deletion_status:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,

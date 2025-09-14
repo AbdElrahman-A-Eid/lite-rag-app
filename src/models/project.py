@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field, model_validator, ConfigDict
 from models.base import BaseDataModel, MongoObjectId
 from models.enums import CollectionNames
 from models.asset import AssetModel
-from controllers import ProjectController
 
 
 class Project(BaseModel):
@@ -177,7 +176,6 @@ class ProjectModel(BaseDataModel):
         await asset_model.delete_assets_by_project(project_object_id)
         result = await self.collection.delete_one({"_id": project_object_id})
         if result.deleted_count != 0:
-            ProjectController().delete_project_folder(project_id)
             return True
         return False
 
