@@ -71,10 +71,11 @@ class OpenAIProvider(BaseLLMProvider):
         Returns:
             Dict[str, str]: The constructed prompt.
         """
-        if role not in self.enums.__members__:
+        if role not in (e.value for e in self.enums):
             self.logger.error(
-                "Invalid role: %s. Must be one of %s.", role, list(self.enums)
+                "Invalid role: %s. Must be one of %s.", role, [e.value for e in self.enums]
             )
+            role = self.enums.USER.value
         return {"role": role, "content": self.process_text(prompt)}
 
     def embed(
