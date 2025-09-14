@@ -5,7 +5,7 @@ API routes for document-related operations.
 from fastapi import APIRouter, status, Depends, Request
 from fastapi.responses import JSONResponse
 from pymongo.asynchronous.database import AsyncDatabase
-from controllers import DocumentController
+from controllers import DocumentController, FileController
 from routes.schemas import (
     DocumentProcessingRequest,
     DocumentProcessingResponse,
@@ -47,6 +47,12 @@ async def process_document(
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
+    file_controller = FileController(settings)
+    if not file_controller.file_exists(project_id, processing_request.file_id):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.FILE_NOT_FOUND.value},
         )
     document_controller = DocumentController(settings=settings, project_id=project_id)
     chunks = document_controller.process_file(

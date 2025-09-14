@@ -50,6 +50,19 @@ class FileController(BaseController):
             file.file.seek(current_position)
         return file_size_mb
 
+    def file_exists(self, project_id: str, file_id: str) -> bool:
+        """Check if a file exists in the project directory.
+
+        Args:
+            project_id (str): The ID of the project.
+            file_id (str): The ID of the file.
+
+        Returns:
+            bool: True if the file exists, False otherwise.
+        """
+        file_path = self.files_dir / project_id / file_id
+        return file_path.exists()
+
     def validate_file(self, file: UploadFile) -> Tuple[bool, str]:
         """Validates the uploaded file against supported types and size limits.
 
