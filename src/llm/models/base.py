@@ -32,7 +32,7 @@ class LLMProviderInterface(ABC):
         """
 
     @abstractmethod
-    def embed(
+    async def embed(
         self, text: str | List[str], input_type: Optional[InputType] = None
     ) -> List[float] | List[List[float]]:
         """
@@ -68,7 +68,7 @@ class LLMProviderInterface(ABC):
         """
 
     @abstractmethod
-    def generate(
+    async def generate(
         self,
         prompt: str,
         chat_history: Optional[List[Dict[str, str]]] = None,

@@ -123,7 +123,7 @@ async def generate_with_rag(
         settings=settings,
         generation_model=request.app.state.generation_llm,
     )
-    rag_response = rag_controller.generate_response(
+    rag_response = await rag_controller.generate_response(
         query=query_prompt,
         system_message=system_prompt,
         temperature=rag_request.temperature,

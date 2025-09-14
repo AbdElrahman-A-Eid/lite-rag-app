@@ -105,7 +105,7 @@ class VectorController(BaseController):
         index_name = self._construct_index_name(project_id)
         self.logger.info("Querying vectors for project: '%s'...", project_id)
 
-        query_vector = self.embedding_model.embed(query, input_type=InputType.QUERY)
+        query_vector = await self.embedding_model.embed(query, input_type=InputType.QUERY)
         normalized_query_vector = self._normalize_vectors(query_vector)[0]
         relevant_vectors = await self.vectordb_client.query_vectors(
             index_name,
@@ -143,7 +143,7 @@ class VectorController(BaseController):
         vectors = []
         for i in range(0, len(texts), 64):
             batch_texts = texts[i : i + 64]
-            batch_vectors = self.embedding_model.embed(
+            batch_vectors = await self.embedding_model.embed(
                 batch_texts, input_type=InputType.DOCUMENT
             )
             vectors.extend(self._normalize_vectors(batch_vectors))

@@ -4,7 +4,7 @@ Concrete implementation of the OpenAI LLM provider.
 
 from enum import Enum
 from typing import Optional, Dict, List
-from openai import OpenAI
+from openai import AsyncOpenAI
 from llm.models.base import BaseLLMProvider
 from llm.models.enums.inputs import InputType
 
@@ -38,7 +38,7 @@ class OpenAIProvider(BaseLLMProvider):
         )
         self.api_key = api_key
         self.base_url = base_url
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url, **kwargs)
+        self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url, **kwargs)
         self.enums = OpenAIMessageRoles
 
     def process_text(self, text: str) -> str:
@@ -78,7 +78,7 @@ class OpenAIProvider(BaseLLMProvider):
             role = self.enums.USER.value
         return {"role": role, "content": self.process_text(prompt)}
 
-    def embed(
+    async def embed(
         self, text: str | List[str], input_type: Optional[InputType] = None
     ) -> List[float] | List[List[float]]:
         """
@@ -99,7 +99,7 @@ class OpenAIProvider(BaseLLMProvider):
             return []
         if isinstance(text, str):
             text = [text]
-        response = self.client.embeddings.create(
+        response = await self.client.embeddings.create(
             input=text,
             model=self.embedding_model_id,
             dimensions=self.embedding_size,
@@ -109,7 +109,7 @@ class OpenAIProvider(BaseLLMProvider):
             return response.data[0].embedding
         return [item.embedding for item in response.data]
 
-    def generate(
+    async def generate(
         self,
         prompt: str,
         chat_history: Optional[List[Dict[str, str]]] = None,
@@ -139,7 +139,7 @@ class OpenAIProvider(BaseLLMProvider):
         if chat_history is None:
             chat_history = []
         chat_history.append(self.construct_prompt(prompt, self.enums.USER.value))
-        response = self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(
             model=self.generation_model_id,
             messages=chat_history,  # type: ignore
             max_tokens=max_tokens or self.default_max_output_tokens,

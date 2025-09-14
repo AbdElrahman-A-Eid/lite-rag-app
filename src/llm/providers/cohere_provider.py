@@ -4,7 +4,7 @@ Concrete implementation of the Cohere LLM provider.
 
 from enum import Enum
 from typing import Optional, Dict, List
-from cohere import ClientV2
+from cohere import AsyncClientV2
 from llm.models.base import BaseLLMProvider
 from llm.models.enums.inputs import InputType
 
@@ -43,7 +43,7 @@ class CohereProvider(BaseLLMProvider):
         )
         self.api_key = api_key
         self.base_url = base_url if base_url else None
-        self.client = ClientV2(api_key=self.api_key, base_url=self.base_url, **kwargs)
+        self.client = AsyncClientV2(api_key=self.api_key, base_url=self.base_url, **kwargs)
         self.enums = CohereMessageRoles
 
     def process_text(self, text: str) -> str:
@@ -83,7 +83,7 @@ class CohereProvider(BaseLLMProvider):
             role = self.enums.USER.value
         return {"role": role, "content": self.process_text(prompt)}
 
-    def embed(
+    async def embed(
         self, text: str | List[str], input_type: Optional[InputType] = None
     ) -> List[float] | List[List[float]]:
         """
@@ -114,7 +114,7 @@ class CohereProvider(BaseLLMProvider):
             return []
         if isinstance(text, str):
             text = [text]
-        response = self.client.embed(
+        response = await self.client.embed(
             texts=text,
             model=self.embedding_model_id,
             input_type=INPUT_TYPES_MAPPING[input_type],
@@ -128,7 +128,7 @@ class CohereProvider(BaseLLMProvider):
             return response.embeddings.float_[0]
         return response.embeddings.float_
 
-    def generate(
+    async def generate(
         self,
         prompt: str,
         chat_history: Optional[List[Dict[str, str]]] = None,
@@ -158,7 +158,7 @@ class CohereProvider(BaseLLMProvider):
         if chat_history is None:
             chat_history = []
         chat_history.append(self.construct_prompt(prompt, self.enums.USER.value))
-        response = self.client.chat(
+        response = await self.client.chat(
             model=self.generation_model_id,
             messages=chat_history,  # type: ignore
             max_tokens=max_tokens or self.default_max_output_tokens,

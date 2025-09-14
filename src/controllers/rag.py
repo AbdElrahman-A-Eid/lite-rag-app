@@ -32,7 +32,7 @@ class RAGController(BaseController):
         self.generation_model = generation_model
         self.logger.info("RAGController initialized")
 
-    def generate_response(
+    async def generate_response(
         self,
         query: str,
         system_message: Optional[str] = None,
@@ -59,7 +59,7 @@ class RAGController(BaseController):
                 )
             ]
 
-        response = self.generation_model.generate(
+        response = await self.generation_model.generate(
             prompt=query,
             chat_history=system_message_dict,
             max_tokens=max_output_tokens,
