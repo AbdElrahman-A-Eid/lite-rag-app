@@ -93,7 +93,9 @@ async def get_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)
 
 
 @projects_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: str, request: Request, mongo_db: AsyncDatabase = Depends(get_db)):
+async def delete_project(
+    project_id: str, request: Request, mongo_db: AsyncDatabase = Depends(get_db)
+):
     """
     Deletes a specific project by its ID.
     """
