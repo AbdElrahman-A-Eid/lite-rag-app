@@ -146,6 +146,7 @@ async def refresh_project_documents(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
         )
+    file_controller = FileController(settings)
     document_controller = DocumentController(settings=settings, project_id=project_id)
     document_chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
     await document_chunk_model.delete_chunks_by_project(project_record.object_id)
@@ -157,6 +158,15 @@ async def refresh_project_documents(
                     project_id=project_id,
                     file_id=asset.name,
                     msg=ResponseSignals.ASSET_NOT_FOUND.value,
+                ).model_dump(mode="json", exclude_defaults=True)
+            )
+            continue
+        if not file_controller.file_exists(project_id, asset.name):
+            processing_results.append(
+                DocumentProcessingResponse(
+                    project_id=project_id,
+                    file_id=asset.name,
+                    msg=ResponseSignals.FILE_NOT_FOUND.value,
                 ).model_dump(mode="json", exclude_defaults=True)
             )
             continue
