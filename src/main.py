@@ -42,7 +42,7 @@ async def lifespan(fastapi_app: FastAPI):
         provider_type=fastapi_app.state.settings.embedding_backend
     )
     if fastapi_app.state.embedding_llm is not None:
-        fastapi_app.state.embedding_llm.set_embedding_model(
+        await fastapi_app.state.embedding_llm.set_embedding_model(
             fastapi_app.state.settings.embedding_model_id,
             fastapi_app.state.settings.embedding_dimensions,
         )
@@ -50,7 +50,7 @@ async def lifespan(fastapi_app: FastAPI):
         provider_type=fastapi_app.state.settings.generation_backend
     )
     if fastapi_app.state.generation_llm is not None:
-        fastapi_app.state.generation_llm.set_generation_model(
+        await fastapi_app.state.generation_llm.set_generation_model(
             fastapi_app.state.settings.generation_model_id
         )
 

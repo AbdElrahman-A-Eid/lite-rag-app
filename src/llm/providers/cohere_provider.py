@@ -49,6 +49,37 @@ class CohereProvider(BaseLLMProvider):
             api_key=self.api_key, base_url=self.base_url, **kwargs
         )
         self.enums = CohereMessageRoles
+        self.available_models: List[str] = []
+
+    @property
+    async def models_(self) -> List[str]:
+        """
+        List available models from the API.
+
+        Returns:
+            List[str]: A list of available model IDs if successful, an empty list otherwise.
+        """
+        if self.client is None:
+            self.logger.error("Cohere client is not initialized.")
+        elif not self.available_models:
+            self.logger.info("Fetching available models from Cohere...")
+            try:
+                response = await self.client.models.list(page_size=1000)
+                if response.models is None:
+                    self.logger.error("No models returned from Cohere.")
+                else:
+                    model_ids = [
+                        model.name
+                        for model in response.models
+                        if model.name and not model.is_deprecated
+                    ]
+                    self.available_models = model_ids
+            except Exception as e:
+                self.logger.error(
+                    "Error listing models from Cohere: %s", str(e), exc_info=True
+                )
+        self.logger.info("Available models: %s", self.available_models)
+        return self.available_models
 
     def process_text(self, text: str) -> str:
         """

@@ -15,7 +15,7 @@ class LLMProviderInterface(ABC):
     """
 
     @abstractmethod
-    def set_embedding_model(self, model_id: str, embedding_size: int):
+    async def set_embedding_model(self, model_id: str, embedding_size: int):
         """Set the embedding model to use for generating embeddings.
 
         Args:
@@ -30,6 +30,16 @@ class LLMProviderInterface(ABC):
 
         Returns:
             int: The embedding size.
+        """
+
+    @property
+    @abstractmethod
+    async def models_(self) -> List[str]:
+        """
+        List available models from the API.
+
+        Returns:
+            List[str]: A list of available model IDs if successful, an empty list otherwise.
         """
 
     @abstractmethod
@@ -61,7 +71,7 @@ class LLMProviderInterface(ABC):
         """
 
     @abstractmethod
-    def set_generation_model(self, model_id: str):
+    async def set_generation_model(self, model_id: str):
         """Set the generation model to use for responses.
 
         Args:
@@ -117,21 +127,37 @@ class BaseLLMProvider(LLMProviderInterface):
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def set_generation_model(self, model_id: str):
+    async def set_generation_model(self, model_id: str):
         """Set the generation model to use for responses.
 
         Args:
             model_id (str): The ID of the model to use.
         """
+        available_models = await self.models_
+        if available_models is None or (model_id not in available_models):
+            self.logger.error(
+                "Model ID %s is not available. Available models: %s",
+                model_id,
+                available_models,
+            )
+            return
         self.generation_model_id = model_id
 
-    def set_embedding_model(self, model_id: str, embedding_size: int):
+    async def set_embedding_model(self, model_id: str, embedding_size: int):
         """Set the embedding model to use for generating embeddings.
 
         Args:
             model_id (str): The ID of the model to use.
             embedding_size (int): The size of the embeddings to generate.
         """
+        available_models = await self.models_
+        if available_models is None or model_id not in available_models:
+            self.logger.error(
+                "Model ID %s is not available. Available models: %s",
+                model_id,
+                available_models,
+            )
+            return
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
