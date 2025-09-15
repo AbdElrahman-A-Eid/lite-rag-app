@@ -107,7 +107,7 @@ class VectorController(BaseController):
         self.logger.info("Querying vectors for project: '%s'...", project_id)
 
         query_vector = await self.embedding_model.embed(
-            query, input_type=InputType.QUERY
+            [query], input_type=InputType.QUERY
         )
         normalized_query_vector = self._normalize_vectors(query_vector)[0]
         relevant_vectors = await self.vectordb_client.query_vectors(
