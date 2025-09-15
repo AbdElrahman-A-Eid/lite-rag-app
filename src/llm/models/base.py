@@ -15,12 +15,13 @@ class LLMProviderInterface(ABC):
     """
 
     @abstractmethod
-    async def set_embedding_model(self, model_id: str, embedding_size: int):
+    async def set_embedding_model(self, model_id: str, embedding_size: Optional[int]):
         """Set the embedding model to use for generating embeddings.
 
         Args:
             model_id (str): The ID of the model to use.
-            embedding_size (int): The size of the embeddings to generate.
+            embedding_size (Optional[int]): The size of the embeddings to generate. \
+                If None, use model default.
         """
 
     @property
@@ -44,17 +45,17 @@ class LLMProviderInterface(ABC):
 
     @abstractmethod
     async def embed(
-        self, text: str | List[str], input_type: Optional[InputType] = None
-    ) -> List[float] | List[List[float]]:
+        self, texts: List[str], input_type: Optional[InputType] = None
+    ) -> List[List[float]]:
         """
         Generate embeddings for the given text.
 
         Args:
-            text (str | List[str]): The text or list of texts to generate embeddings for.
+            texts (List[str]): The text or list of texts to generate embeddings for.
             input_type (Optional[InputType]): The type of input (e.g., "document", "query").
 
         Returns:
-            List[float] | List[List[float]]: The generated embeddings.
+            List[List[float]]: The generated embeddings.
         """
 
     @abstractmethod
@@ -143,12 +144,13 @@ class BaseLLMProvider(LLMProviderInterface):
             return
         self.generation_model_id = model_id
 
-    async def set_embedding_model(self, model_id: str, embedding_size: int):
+    async def set_embedding_model(self, model_id: str, embedding_size: Optional[int]):
         """Set the embedding model to use for generating embeddings.
 
         Args:
             model_id (str): The ID of the model to use.
-            embedding_size (int): The size of the embeddings to generate.
+            embedding_size (Optional[int]): The size of the embeddings to generate. \
+                If None, use model default.
         """
         available_models = await self.models_
         if available_models is None or model_id not in available_models:
@@ -159,7 +161,20 @@ class BaseLLMProvider(LLMProviderInterface):
             )
             return
         self.embedding_model_id = model_id
-        self.embedding_size = embedding_size
+        if embedding_size is None:
+            self.logger.info(
+                "Embedding size not provided. Using model default for %s.", model_id
+            )
+            self.embedding_size = len(
+                (await self.embed(texts=["test"], input_type=InputType.DOCUMENT))[0]
+            )
+            self.logger.info(
+                "Inferred embedding size for model %s is %d.",
+                model_id,
+                self.embedding_size,
+            )
+        else:
+            self.embedding_size = embedding_size
 
     @property
     def embedding_size_(self) -> int:

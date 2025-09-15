@@ -112,17 +112,17 @@ class OpenAIProvider(BaseLLMProvider):
         return {"role": role, "content": self.process_text(prompt)}
 
     async def embed(
-        self, text: str | List[str], input_type: Optional[InputType] = None
-    ) -> List[float] | List[List[float]]:
+        self, texts: List[str], input_type: Optional[InputType] = None
+    ) -> List[List[float]]:
         """
         Generate embeddings for the given text.
 
         Args:
-            text (str | List[str]): The text or list of texts to generate embeddings for.
+            texts (List[str]): The text or list of texts to generate embeddings for.
             input_type (Optional[InputType]): The type of input (e.g., "document", "query").
 
         Returns:
-            List[float] | List[List[float]]: The generated embeddings.
+            List[List[float]]: The generated embeddings.
         """
         if self.client is None:
             self.logger.error("OpenAI client is not initialized.")
@@ -130,16 +130,12 @@ class OpenAIProvider(BaseLLMProvider):
         if self.embedding_model_id is None or self.embedding_size is None:
             self.logger.error("Embedding model ID or size is not set.")
             return []
-        if isinstance(text, str):
-            text = [text]
         response = await self.client.embeddings.create(
-            input=text,
+            input=texts,
             model=self.embedding_model_id,
             dimensions=self.embedding_size,
             encoding_format="float",
         )
-        if isinstance(text, str):
-            return response.data[0].embedding
         return [item.embedding for item in response.data]
 
     async def generate(
