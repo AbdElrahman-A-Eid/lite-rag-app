@@ -537,7 +537,7 @@ The typical workflow involves these steps:
 
 **`POST /api/v1/p/{project_id}/rag/generate`** - Generate RAG response
 - **Required**: `project_id` (path parameter), `query` (string)
-- **Optional**: 
+- **Optional**:
   - `top_k` (integer, default: 5, min: 1)
   - `threshold` (float, range: 0.0-1.0)
   - `temperature` (float, range: 0.0-2.0)
@@ -561,7 +561,7 @@ The typical workflow involves these steps:
 ```json
 {
   "id": "1867260d-cf8e-4535-9441-54988ad100e3",
-  "name": "Research Papers", 
+  "name": "Research Papers",
   "description": "Academic papers on machine learning"
 }
 ```
@@ -703,7 +703,7 @@ The typical workflow involves these steps:
 The application uses standardized error messages through `ResponseSignals`. Common error messages include:
 
 - `PROJECT_NOT_FOUND` - The specified project doesn't exist
-- `ASSET_NOT_FOUND` - The specified asset/file doesn't exist  
+- `ASSET_NOT_FOUND` - The specified asset/file doesn't exist
 - `DOCUMENT_PROCESSING_FAILED` - Document processing failed
 - `VECTOR_INDEXING_FAILED` - Vector indexing operation failed
 - `VECTOR_INDEX_NOT_FOUND` - No vector index exists for the project
