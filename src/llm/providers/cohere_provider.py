@@ -36,7 +36,7 @@ class CohereProvider(BaseLLMProvider):
         max_input_characters: int = 3000,
         default_max_output_tokens: int = 1024,
         default_temperature: float = 0.15,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             max_input_characters,

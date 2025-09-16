@@ -83,7 +83,7 @@ async def process_document(
             **chunk.model_dump(),
             project_id=project_record.object_id,
             asset_id=asset_object_id,
-            chunk_order=idx_
+            chunk_order=idx_,
         )
         for idx_, chunk in enumerate(chunks)
     ]
@@ -190,7 +190,7 @@ async def refresh_project_documents(
                 **chunk.model_dump(),
                 project_id=project_record.object_id,
                 asset_id=asset.object_id,
-                chunk_order=idx_
+                chunk_order=idx_,
             )
             for idx_, chunk in enumerate(chunks)
         ]
