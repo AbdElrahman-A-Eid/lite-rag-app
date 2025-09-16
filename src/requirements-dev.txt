@@ -5,14 +5,6 @@ isort>=6.0.1
 flake8>=7.3.0
 mypy>=1.18.1
 
-# Type stubs for your project dependencies
-types-pymongo
-types-requests
-types-python-dateutil
-types-PyYAML
-types-redis
-types-setuptools
-
 # Project's runtime dependencies
 aiofiles==24.1.0
 cohere==5.17.0
