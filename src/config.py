@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     mongo_uri: AnyUrl
     mongo_db_name: str
 
+    database_hostname: str
+    database_port: int = Field(ge=1, le=65535)
+    database_username: str
+    database_password: str
+    database_name: str
+
     generation_backend: str
     embedding_backend: str
 
