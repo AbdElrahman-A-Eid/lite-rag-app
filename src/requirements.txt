@@ -1,4 +1,6 @@
 aiofiles==24.1.0
+alembic==1.16.5
+asyncpg==0.30.0
 cohere==5.17.0
 fastapi==0.116.1
 langchain-community==0.3.28
