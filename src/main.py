@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from pymongo import AsyncMongoClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config import get_settings, setup_logging
 from llm.controllers.factory import LLMProviderFactory
@@ -30,6 +31,19 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.title = fastapi_app.state.settings.app_name
     fastapi_app.version = fastapi_app.state.settings.app_version
     setup_logging(fastapi_app.state.settings)
+    fastapi_app.state.engine = create_async_engine(
+        f"postgresql+asyncpg://{fastapi_app.state.settings.database_username}:"
+        f"{fastapi_app.state.settings.database_password}@"
+        f"{fastapi_app.state.settings.database_hostname}:"
+        f"{fastapi_app.state.settings.database_port}/"
+        f"{fastapi_app.state.settings.database_name}",
+        expire_on_commit=False,
+    )
+    fastapi_app.state.async_session = async_sessionmaker(
+        bind=fastapi_app.state.engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
     fastapi_app.state.mongo_client = AsyncMongoClient(
         str(fastapi_app.state.settings.mongo_uri)
     )
@@ -68,6 +82,7 @@ async def lifespan(fastapi_app: FastAPI):
 
     yield
 
+    await fastapi_app.state.engine.dispose()
     if fastapi_app.state.vectordb_client is not None:
         await fastapi_app.state.vectordb_client.disconnect()
     await fastapi_app.state.mongo_client.close()
