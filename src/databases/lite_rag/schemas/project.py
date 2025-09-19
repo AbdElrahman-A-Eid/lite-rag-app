@@ -6,9 +6,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import (
-    Index,
-)
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
@@ -34,11 +31,6 @@ class Project(PKUUIDMixin, TimestampMixin, Base):
     )
     assets: Mapped[List["Asset"]] = relationship(
         back_populates="project", cascade="all, delete-orphan", lazy="selectin"
-    )
-
-    __table_args__ = Index(
-        "ix_projects_id",
-        "id",
     )
 
     def __repr__(self) -> str:
