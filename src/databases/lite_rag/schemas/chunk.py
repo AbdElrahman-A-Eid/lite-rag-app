@@ -41,7 +41,7 @@ class DocumentChunk(PKUUIDMixin, TimestampMixin, Base):
     )
     order: Mapped[int]
     content: Mapped[str]
-    metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
 
     project: Mapped["Project"] = relationship(back_populates="document_chunks")
     asset: Mapped["Asset"] = relationship(back_populates="document_chunks")
