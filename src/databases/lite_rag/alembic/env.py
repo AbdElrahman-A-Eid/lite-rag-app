@@ -3,9 +3,10 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import URL, Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from config import get_settings
 from databases.lite_rag.schemas.base import Base
 
 # this is the Alembic Config object, which provides
@@ -16,6 +17,19 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+settings = get_settings()
+db_url = URL.create(
+    "postgresql+asyncpg",
+    username=settings.database_username,
+    password=settings.database_password,
+    host=settings.database_hostname,
+    port=settings.database_port,
+    database=settings.database_name,
+)
+config.set_main_option(
+    "sqlalchemy.url", db_url.render_as_string(hide_password=False).replace("%", "%%")
+)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
