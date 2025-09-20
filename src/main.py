@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from pymongo import AsyncMongoClient
+from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config import get_settings, setup_logging
@@ -31,12 +32,16 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.title = fastapi_app.state.settings.app_name
     fastapi_app.version = fastapi_app.state.settings.app_version
     setup_logging(fastapi_app.state.settings)
+    db_url = URL.create(
+        "postgresql+asyncpg",
+        username=fastapi_app.state.settings.database_username,
+        password=fastapi_app.state.settings.database_password,
+        host=fastapi_app.state.settings.database_hostname,
+        port=fastapi_app.state.settings.database_port,
+        database=fastapi_app.state.settings.database_name,
+    )
     fastapi_app.state.engine = create_async_engine(
-        f"postgresql+asyncpg://{fastapi_app.state.settings.database_username}:"
-        f"{fastapi_app.state.settings.database_password}@"
-        f"{fastapi_app.state.settings.database_hostname}:"
-        f"{fastapi_app.state.settings.database_port}/"
-        f"{fastapi_app.state.settings.database_name}",
+        db_url.render_as_string(hide_password=False).replace("%", "%%"),
         expire_on_commit=False,
     )
     fastapi_app.state.async_session = async_sessionmaker(
