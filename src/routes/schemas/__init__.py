@@ -17,8 +17,8 @@ from routes.schemas.documents import (
 )
 from routes.schemas.projects import (
     ProjectCreationRequest,
-    ProjectCreationResponse,
     ProjectListResponse,
+    ProjectResponse,
 )
 from routes.schemas.vectors import (
     VectorIndexRequest,
