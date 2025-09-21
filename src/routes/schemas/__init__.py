@@ -7,12 +7,11 @@ from routes.schemas.assets import (
     AssetResponse,
 )
 from routes.schemas.documents import (
+    BatchDocumentsResponse,
+    ChunkListResponse,
     ChunkResponse,
-    DocumentListResponse,
     DocumentProcessingRequest,
-    DocumentProcessingResponse,
     ProjectDocumentsRefreshRequest,
-    ProjectDocumentsRefreshResponse,
 )
 from routes.schemas.projects import (
     ProjectCreationRequest,
