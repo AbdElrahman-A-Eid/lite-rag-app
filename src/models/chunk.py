@@ -38,8 +38,8 @@ class DocumentChunkModel(BaseDataModel):
                 Otherwise, None.
         """
         try:
-            async with self.db_session.begin():
-                self.db_session.add(chunk)
+            self.db_session.add(chunk)
+            await self.db_session.flush()
             await self.db_session.refresh(chunk)
             return chunk
         except Exception as e:
@@ -60,8 +60,8 @@ class DocumentChunkModel(BaseDataModel):
         if not chunks:
             return []
         try:
-            async with self.db_session.begin():
-                self.db_session.add_all(chunks)
+            self.db_session.add_all(chunks)
+            await self.db_session.flush()
             for chunk in chunks:
                 await self.db_session.refresh(chunk)
             return chunks
@@ -81,14 +81,13 @@ class DocumentChunkModel(BaseDataModel):
         Returns:
             Sequence[DocumentChunk]: The list of document chunks for the specified project.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(
-                select(DocumentChunk)
-                .where(DocumentChunk.project_id == project_id)
-                .offset(skip)
-                .limit(limit)
-            )
-            chunks = result.scalars().all()
+        result = await self.db_session.execute(
+            select(DocumentChunk)
+            .where(DocumentChunk.project_id == project_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        chunks = result.scalars().all()
         return chunks
 
     async def delete_chunks_by_project_asset(
@@ -103,14 +102,13 @@ class DocumentChunkModel(BaseDataModel):
         Returns:
             The number of deleted chunks.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(
-                delete(DocumentChunk).where(
-                    DocumentChunk.project_id == project_id,
-                    DocumentChunk.asset_id == asset_id,
-                )
+        result = await self.db_session.execute(
+            delete(DocumentChunk).where(
+                DocumentChunk.project_id == project_id,
+                DocumentChunk.asset_id == asset_id,
             )
-            deleted_count = result.rowcount
+        )
+        deleted_count = result.rowcount or 0
         return deleted_count
 
     async def delete_chunks_by_project(self, project_id: UUID) -> int:
@@ -122,11 +120,10 @@ class DocumentChunkModel(BaseDataModel):
         Returns:
             The number of deleted chunks.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(
-                delete(DocumentChunk).where(DocumentChunk.project_id == project_id)
-            )
-            deleted_count = result.rowcount
+        result = await self.db_session.execute(
+            delete(DocumentChunk).where(DocumentChunk.project_id == project_id)
+        )
+        deleted_count = result.rowcount or 0
         return deleted_count
 
     async def count_chunks_by_project(self, project_id: UUID) -> int:
@@ -138,11 +135,10 @@ class DocumentChunkModel(BaseDataModel):
         Returns:
             The number of document chunks.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(
-                select(functions.count(DocumentChunk.id)).where(
-                    DocumentChunk.project_id == project_id
-                )
+        result = await self.db_session.execute(
+            select(functions.count(DocumentChunk.id)).where(
+                DocumentChunk.project_id == project_id
             )
-            total = result.scalar_one()
+        )
+        total = result.scalar_one()
         return total
