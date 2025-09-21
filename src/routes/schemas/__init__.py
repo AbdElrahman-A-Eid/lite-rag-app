@@ -4,8 +4,7 @@ Pydantic schemas for the API requests and responses.
 
 from routes.schemas.assets import (
     AssetListResponse,
-    AssetPushResponse,
-    BatchAssetsPushResponse,
+    AssetResponse,
 )
 from routes.schemas.documents import (
     ChunkResponse,
