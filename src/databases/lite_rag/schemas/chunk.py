@@ -21,7 +21,6 @@ from databases.lite_rag.schemas.base import Base, PKUUIDMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from databases.lite_rag.schemas.asset import Asset
-    from databases.lite_rag.schemas.project import Project
 
 
 class DocumentChunk(PKUUIDMixin, TimestampMixin, Base):
@@ -43,7 +42,6 @@ class DocumentChunk(PKUUIDMixin, TimestampMixin, Base):
     content: Mapped[str]
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
 
-    project: Mapped["Project"] = relationship(back_populates="document_chunks")
     asset: Mapped["Asset"] = relationship(back_populates="document_chunks")
 
     __table_args__ = (
