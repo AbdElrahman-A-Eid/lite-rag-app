@@ -5,7 +5,7 @@ Model definitions for projects.
 from typing import Optional, Sequence
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import functions
 
@@ -25,6 +25,7 @@ class ProjectModel(BaseDataModel):
             db_session (AsyncSession): The SQLAlchemy database async session.
         """
         super().__init__(db_session)
+        self.logger.info("ProjectModel initialized")
 
     async def insert_project(self, project: Project) -> Optional[Project]:
         """Insert a new project into the database.
@@ -37,8 +38,8 @@ class ProjectModel(BaseDataModel):
                 None otherwise.
         """
         try:
-            async with self.db_session.begin():
-                self.db_session.add(project)
+            self.db_session.add(project)
+            await self.db_session.flush()
             await self.db_session.refresh(project)
             return project
         except Exception as e:
@@ -55,11 +56,10 @@ class ProjectModel(BaseDataModel):
         Returns:
             Sequence[Project]: A list of projects.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(
-                select(Project).offset(skip).limit(limit)
-            )
-            projects = result.scalars().all()
+        result = await self.db_session.execute(
+            select(Project).offset(skip).limit(limit)
+        )
+        projects = result.scalars().all()
         return projects
 
     async def get_project_by_id(self, project_id: UUID) -> Optional[Project]:
@@ -71,11 +71,10 @@ class ProjectModel(BaseDataModel):
         Returns:
             Optional[Project]: The project with the specified ID, or None if not found.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(
-                select(Project).where(Project.id == project_id)
-            )
-            project = result.scalar_one_or_none()
+        result = await self.db_session.execute(
+            select(Project).where(Project.id == project_id)
+        )
+        project = result.scalar_one_or_none()
         return project
 
     async def delete_project(self, project_id: UUID) -> bool:
@@ -87,12 +86,13 @@ class ProjectModel(BaseDataModel):
         Returns:
             bool: True if the project was deleted, False otherwise.
         """
-        project = await self.get_project_by_id(project_id)
-        if not project:
-            return False
-        async with self.db_session.begin():
-            await self.db_session.delete(project)
-        return True
+        result = await self.db_session.execute(
+            delete(Project).where(
+                Project.id == project_id,
+            )
+        )
+        deleted_count = result.rowcount or 0
+        return deleted_count > 0
 
     async def count_projects(self) -> int:
         """Count the total number of projects in the database.
@@ -100,7 +100,6 @@ class ProjectModel(BaseDataModel):
         Returns:
             int: The total number of projects.
         """
-        async with self.db_session.begin():
-            result = await self.db_session.execute(select(functions.count(Project.id)))
-            total = result.scalar_one()
+        result = await self.db_session.execute(select(functions.count(Project.id)))
+        total = result.scalar_one()
         return total
