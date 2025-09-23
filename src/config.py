@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import List, Optional
 
-from pydantic import AnyUrl, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from llm.models.enums.locales import Locale
@@ -30,9 +30,6 @@ class Settings(BaseSettings):
     files_supported_types: List[str]
     files_max_size_mb: int = Field(ge=0, default=20)
     files_default_chunk_size_kb: int = Field(ge=0, default=512)
-
-    mongo_uri: AnyUrl
-    mongo_db_name: str
 
     database_hostname: str
     database_port: int = Field(ge=1, le=65535)
