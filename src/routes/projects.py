@@ -3,110 +3,130 @@ Projects API routes for Lite-RAG-App
 """
 
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
-from pymongo.asynchronous.database import AsyncDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from controllers import ProjectController
-from dependencies import get_db
+from dependencies import get_session
 from models.enums import ResponseSignals
 from models.project import Project, ProjectModel
 from routes.schemas import (
     ProjectCreationRequest,
-    ProjectCreationResponse,
     ProjectListResponse,
+    ProjectResponse,
 )
 
 projects_router = APIRouter(prefix="/api/v1/projects", tags=["projects", "v1"])
 
 
-@projects_router.post("/create", response_model=ProjectCreationResponse)
+@projects_router.post(
+    "/create",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_201_CREATED,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
 async def create_project(
     request: Request,
     project: Optional[ProjectCreationRequest] = None,
-    mongo_db: AsyncDatabase = Depends(get_db),
+    db_session: AsyncSession = Depends(get_session),
 ):
     """
     Creates a new project.
     """
     settings = request.app.state.settings
-    project_controller = ProjectController(settings)
-    project_id = project_controller.create_new_project()
-    if not project_id:
+
+    project_model = ProjectModel(db_session)
+    project_record = await project_model.insert_project(
+        Project(**(project.model_dump(exclude_unset=True) if project else {}))
+    )
+
+    if not project_record:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"msg": ResponseSignals.PROJECT_CREATION_FAILED.value},
         )
 
-    project_model = await ProjectModel.create_instance(mongo_db)
-    project_record = await project_model.insert_project(
-        Project(
-            id=project_id, **(project.model_dump(exclude_unset=True) if project else {})
+    project_id = project_record.id
+    project_controller = ProjectController(settings)
+    creation_status = project_controller.create_new_project(project_id)
+
+    if not creation_status:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"msg": ResponseSignals.PROJECT_CREATION_FAILED.value},
         )
-    )
 
-    return JSONResponse(
-        status_code=status.HTTP_201_CREATED,
-        content=project_record.model_dump(exclude={"object_id"}),
-    )
+    # Success: let response_model handle serialization and aliasing; drop unset/None fields
+    return {"value": project_record}
 
 
-@projects_router.get("/list", response_model=ProjectListResponse)
+@projects_router.get(
+    "/list",
+    response_model=ProjectListResponse,
+    status_code=status.HTTP_200_OK,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
 async def list_projects(
-    skip: int = 0, limit: int = 10, mongo_db: AsyncDatabase = Depends(get_db)
+    skip: int = 0, limit: int = 10, db_session: AsyncSession = Depends(get_session)
 ):
     """
     Lists all existing projects.
     """
     if limit > 100:
         limit = 100
-    project_model = await ProjectModel.create_instance(mongo_db)
+    project_model = ProjectModel(db_session)
     projects = await project_model.get_projects(skip=skip, limit=limit)
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "projects": [
-                project.model_dump(exclude={"object_id"}, exclude_unset=True)
-                for project in projects
-            ],
-            "count": len(projects),
-            "total": await project_model.count_projects(),
-        },
-    )
+    total = await project_model.count_projects()
+    # Success: return plain data; response_model will serialize
+    return {
+        "values": projects,
+        "count": len(projects),
+        "total": total,
+    }
 
 
-@projects_router.get("/{project_id}", response_model=ProjectCreationResponse)
-async def get_project(project_id: str, mongo_db: AsyncDatabase = Depends(get_db)):
+@projects_router.get(
+    "/{project_id}",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_200_OK,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def get_project(
+    project_id: UUID, db_session: AsyncSession = Depends(get_session)
+):
     """
     Retrieves a specific project by its ID.
     """
-    project_model = await ProjectModel.create_instance(mongo_db)
+    project_model = ProjectModel(db_session)
     project = await project_model.get_project_by_id(project_id)
     if not project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content=project.model_dump(exclude={"object_id"}),
-    )
+    # Success
+    return {"value": project}
 
 
 @projects_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
-    project_id: str, request: Request, mongo_db: AsyncDatabase = Depends(get_db)
+    project_id: UUID, request: Request, db_session: AsyncSession = Depends(get_session)
 ):
     """
     Deletes a specific project by its ID.
     """
     settings = request.app.state.settings
-    project_model = await ProjectModel.create_instance(mongo_db)
+    project_model = ProjectModel(db_session)
     deletion_status = await project_model.delete_project(project_id)
     if deletion_status:
         ProjectController(settings).delete_project_folder(project_id)
-    if not deletion_status:
+    else:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
