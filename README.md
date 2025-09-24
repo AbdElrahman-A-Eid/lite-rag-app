@@ -39,7 +39,7 @@ The application supports multiple LLM providers and systems:
 
 ### Document Processing
 
-- **MongoDB**
+- **Posgres Database**
   - Used for document metadata and project management
   - Configured through Docker Compose
 
@@ -54,46 +54,32 @@ The application supports multiple LLM providers and systems:
 
 If you don't have Anaconda or Miniconda installed:
 
-**Miniconda (recommended for lighter installation):**
-- Download from: https://docs.conda.io/en/latest/miniconda.html
-- Follow the installation instructions for your operating system
-
-**Anaconda (full distribution):**
-- Download from: https://www.anaconda.com/products/distribution
-- Follow the installation instructions for your operating system
+Miniconda (recommended): https://docs.conda.io/en/latest/miniconda.html
+Anaconda (full distribution): https://www.anaconda.com/products/distribution
 
 ### 2. Install Docker and Docker Compose
 
-If you don't have Docker and Docker Compose installed:
+Docker Desktop (Windows/macOS): https://www.docker.com/products/docker-desktop/
 
-**Docker Desktop (recommended for Windows and macOS):**
-- Download from: https://www.docker.com/products/docker-desktop/
-- Follow the installation instructions for your operating system
-- Docker Desktop includes Docker Compose automatically
-
-**Docker Engine (for Linux):**
+Linux (Ubuntu/Debian):
 ```bash
-# Ubuntu/Debian
 sudo apt-get update
-sudo apt-get install docker.io docker-compose
-
-# CentOS/RHEL/Fedora
-sudo yum install docker docker-compose
-# or for newer versions:
-sudo dnf install docker docker-compose
-
-# Start and enable Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add your user to the docker group (optional, to run without sudo)
-sudo usermod -aG docker $USER
+sudo apt-get install -y docker.io docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER   # optional to run without sudo (re-login required)
 ```
 
-**Verify Docker installation:**
+Linux (Fedora/RHEL/CentOS):
+```bash
+sudo dnf install -y docker docker-compose-plugin || sudo yum install -y docker docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER   # optional (re-login required)
+```
+
+Verify:
 ```bash
 docker --version
-docker-compose --version
+docker compose version
 ```
 
 ### 3. Clone the Repository
@@ -106,44 +92,45 @@ cd lite-rag-app
 ### 4. Create and Activate Conda Environment
 
 ```bash
-# Create a new conda environment with Python 3.12
 conda create -n lite-rag python=3.12
-
-# Activate the environment
 conda activate lite-rag
 ```
 
 ### 5. Install Dependencies
 
 ```bash
-# Install project dependencies
+# From repository root
+cd src
 pip install -r requirements.txt
+
+# (Optional) Dev tools
+# pip install -r requirements-dev.txt
 ```
 
-### 6. Start MongoDB with Docker
+### 6. Start Postgres Database with Docker
 
-The application requires MongoDB for document metadata and project management:
+The application requires Postgres for document metadata and project management:
 
 ```bash
-# Navigate to the docker directory
+# From repository root
 cd docker
+docker compose up -d
 
-# Start MongoDB using Docker Compose
-docker-compose up -d
-
-# Verify MongoDB is running
-docker-compose ps
+# Verify Postgres is running
+docker compose ps
 ```
 
 ### 7. Run the Application
 
 ```bash
-# Navigate to src directory and ensure conda environment is activated
-cd ../src
+# From repository root
+cd src
 conda activate lite-rag
 
-# Start the FastAPI application using uvicorn
+# Start the FastAPI application
 uvicorn main:app --host 0.0.0.0 --port 8000
+# For development:
+# uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 The application will be available at:
@@ -153,19 +140,17 @@ The application will be available at:
 
 ### 8. Verify Installation
 
-You can verify the installation by accessing the API documentation at http://localhost:8000/docs and checking that all endpoints are available.
+Open http://localhost:8000/docs and check that endpoints are available.
 
 ### 9. Stopping the Application
 
-To stop the application:
-
 ```bash
-# Stop the FastAPI application
-# Press Ctrl+C in the terminal where uvicorn is running
+# Stop the FastAPI app with Ctrl+C in the terminal
 
-# Stop MongoDB (optional)
-cd ../docker
-docker-compose down
+# Stop Postgres (optional)
+# From repository root
+cd docker
+docker compose down
 ```
 
 ## Environment Configuration
@@ -175,18 +160,10 @@ docker-compose down
 Create your application environment file from the template:
 
 ```bash
-# Navigate to src directory
+# From repository root
 cd src
-
-# Copy the environment template
 cp .env.example .env
-```
-
-Edit the `.env` file with your specific configuration:
-
-```bash
-nano .env
-# or use your preferred text editor
+nano .env   # or use your preferred editor
 ```
 
 **Required Environment Variables:**
@@ -200,40 +177,41 @@ RAG_LOG_LEVEL=INFO
 
 **Database Configuration:**
 ```env
-MONGODB_URL=mongodb://localhost:27017
-MONGODB_DATABASE=lite_rag_app
+RAG_DATABASE_HOSTNAME=localhost
+RAG_DATABASE_PORT=5432
+RAG_DATABASE_USERNAME=postgres
+RAG_DATABASE_PASSWORD=
+RAG_DATABASE_NAME=lite_rag
 ```
 
-**LLM Provider Configuration:**
+**LLM Provider Configuration** (choose at least one):
 
-Choose and configure at least one LLM provider:
-
-*For OpenAI:*
+OpenAI:
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_API_BASE_URL=https://api.openai.com/v1
 ```
 
-*For Cohere:*
+Cohere:
 ```env
 COHERE_API_KEY=your_cohere_api_key_here
 COHERE_API_BASE_URL=https://api.cohere.ai/v1
 ```
 
-*For OpenAI-Compatible APIs (e.g., Ollama):*
+OpenAI-Compatible (e.g., Ollama):
 ```env
 OPENAI_API_KEY=not_required_for_local
 OPENAI_API_BASE_URL=http://localhost:11434/v1
 ```
 
-**Generation Settings (Optional):**
+Generation Settings (Optional):
 ```env
 GENERATION_DEFAULT_MAX_TOKENS=1000
 GENERATION_DEFAULT_TEMPERATURE=0.7
 DEFAULT_INPUT_MAX_CHARACTERS=4000
 ```
 
-**Vector Database Settings (Optional):**
+Vector Database Settings (Optional):
 ```env
 QDRANT_VECTOR_SIZE=768
 QDRANT_DISTANCE_METRIC=COSINE
@@ -241,87 +219,75 @@ QDRANT_DISTANCE_METRIC=COSINE
 
 ### 2. Docker Environment Configuration
 
-Configure the Docker environment for MongoDB:
+Configure Docker environment variables for Postgres:
 
 ```bash
-# Navigate to docker directory
+# From repository root
 cd docker
-
-# Copy the Docker environment template
 cp .env.example .env
-```
-
-Edit the Docker `.env` file:
-
-```bash
-nano .env
-# or use your preferred text editor
+nano .env # or use your preferred editor
 ```
 
 **Docker Environment Variables:**
 
 ```env
-# MongoDB Configuration
-MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=your_secure_password_here
-MONGO_INITDB_DATABASE=lite_rag_app
-
-# MongoDB Connection (used by application)
-MONGODB_PORT=27017
-MONGODB_HOST=localhost
+RAG_POSTGRES_DB=literag
+RAG_POSTGRES_USER=postgres
+RAG_POSTGRES_PASSWORD=
 ```
+
+Note: When connecting from the application (running on host), set src/.env to use HOST=localhost and PORT matching the port exposed in docker/compose.yml (default 5432).
 
 ### 3. Environment Variable Descriptions
 
-**Application Environment (src/.env):**
+Application Environment (src/.env):
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `RAG_APP_NAME` | Application name | Lite-RAG-App | No |
-| `RAG_APP_VERSION` | Application version | 1.0.0 | No |
-| `RAG_LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO | No |
-| `MONGODB_URL` | MongoDB connection string | mongodb://localhost:27017 | Yes |
-| `MONGODB_DATABASE` | MongoDB database name | lite_rag_app | No |
-| `OPENAI_API_KEY` | OpenAI API key | - | If using OpenAI |
-| `OPENAI_API_BASE_URL` | OpenAI API base URL | https://api.openai.com/v1 | No |
-| `COHERE_API_KEY` | Cohere API key | - | If using Cohere |
-| `COHERE_API_BASE_URL` | Cohere API base URL | https://api.cohere.ai/v1 | No |
-| `GENERATION_DEFAULT_MAX_TOKENS` | Default max tokens for generation | 1000 | No |
-| `GENERATION_DEFAULT_TEMPERATURE` | Default temperature for generation | 0.7 | No |
-| `DEFAULT_INPUT_MAX_CHARACTERS` | Max input characters | 4000 | No |
-| `QDRANT_VECTOR_SIZE` | Vector dimension size | 768 | No |
-| `QDRANT_DISTANCE_METRIC` | Distance metric for similarity | COSINE | No |
+| RAG_APP_NAME | Application name | Lite-RAG-App | No |
+| RAG_APP_VERSION | Application version | 1.0.0 | No |
+| RAG_LOG_LEVEL | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO | No |
+| RAG_DATABASE_HOSTNAME | Postgres hostname | localhost | Yes |
+| RAG_DATABASE_PORT | Postgres port | 5432 | Yes |
+| RAG_DATABASE_USERNAME | Postgres username | postgres | Yes |
+| RAG_DATABASE_PASSWORD | Postgres password | (empty) | Yes |
+| RAG_DATABASE_NAME | Postgres database name | lite_rag | Yes |
+| OPENAI_API_KEY | OpenAI API key | - | If using OpenAI |
+| OPENAI_API_BASE_URL | OpenAI API base URL | https://api.openai.com/v1 | No |
+| COHERE_API_KEY | Cohere API key | - | If using Cohere |
+| COHERE_API_BASE_URL | Cohere API base URL | https://api.cohere.ai/v1 | No |
+| GENERATION_DEFAULT_MAX_TOKENS | Default max tokens for generation | 1000 | No |
+| GENERATION_DEFAULT_TEMPERATURE | Default temperature for generation | 0.7 | No |
+| DEFAULT_INPUT_MAX_CHARACTERS | Max input characters | 4000 | No |
+| QDRANT_VECTOR_SIZE | Vector dimension size | 768 | No |
+| QDRANT_DISTANCE_METRIC | Distance metric for similarity | COSINE | No |
 
-**Docker Environment (docker/.env):**
+Docker Environment (docker/.env):
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `MONGO_INITDB_ROOT_USERNAME` | MongoDB root username | admin | Yes |
-| `MONGO_INITDB_ROOT_PASSWORD` | MongoDB root password | - | Yes |
-| `MONGO_INITDB_DATABASE` | Initial MongoDB database | lite_rag_app | No |
-| `MONGODB_PORT` | MongoDB exposed port | 27017 | No |
-| `MONGODB_HOST` | MongoDB host | localhost | No |
+| RAG_POSTGRES_DB | Postgres database name (container) | literag | Yes |
+| RAG_POSTGRES_USER | Postgres username (container) | postgres | Yes |
+| RAG_POSTGRES_PASSWORD | Postgres password (container) | - | Yes |
 
 ### 4. Provider-Specific Notes
 
-**OpenAI:**
-- Obtain API key from: https://platform.openai.com/api-keys
-- Standard OpenAI API endpoint is used by default
+OpenAI:
+- Obtain API key: https://platform.openai.com/api-keys
 
-**Cohere:**
-- Obtain API key from: https://dashboard.cohere.com/api-keys
-- Standard Cohere API endpoint is used by default
+Cohere:
+- Obtain API key: https://dashboard.cohere.com/api-keys
 
-**Ollama (Local):**
-- Install Ollama from: https://ollama.ai
-- Start Ollama service: `ollama serve`
-- Pull a model: `ollama pull <model-name>`  <!-- Replace `<model-name>` with your preferred model id -->
+Ollama (Local):
+- Install: https://ollama.ai
+- Start: `ollama serve`
+- Pull a model: `ollama pull <model-name>`
 - Set `OPENAI_API_BASE_URL=http://localhost:11434/v1`
 - API key can be any value for local usage
 
-**Other OpenAI-Compatible:**
+Other OpenAI-Compatible:
 - Adjust `OPENAI_API_BASE_URL` to point to your service
-- Use appropriate authentication method for your service
+- Use appropriate authentication for your service
 
 ## Project Structure
 
@@ -333,92 +299,105 @@ lite-rag-app/
 │   └── compose.yml               # Docker Compose configuration
 ├── src/                          # Main application source code
 │   ├── assets/                   # Application assets and data storage
-│   │   ├── databases/            # Vector database storage
+│   │   ├── databases/            # Local/embedded databases storage
 │   │   ├── files/                # Uploaded project files storage
 │   │   └── logs/                 # Application log files
 │   ├── controllers/              # Business logic controllers
-│   │   ├── __init__.py           # Controllers module initialization
-│   │   ├── assets.py             # Asset management controller
-│   │   ├── base.py               # Base controller class
-│   │   ├── documents.py          # Document processing controller
-│   │   ├── projects.py           # Project management controller
-│   │   ├── rag.py                # RAG operations controller
-│   │   └── vectors.py            # Vector operations controller
+│   │   ├── __init__.py
+│   │   ├── assets.py
+│   │   ├── base.py
+│   │   ├── documents.py
+│   │   ├── projects.py
+│   │   ├── rag.py
+│   │   └── vectors.py
+│   ├── databases/                # Relational database layer (Postgres)
+│   │   ├── __init__.py
+│   │   └── lite_rag/
+│   │       ├── alembic/          # Database migrations
+│   │       │   ├── README
+│   │       │   ├── env.py
+│   │       │   ├── script.py.mako
+│   │       │   └── versions/     # Migration versions
+│   │       ├── schemas/          # SQLAlchemy models
+│   │       │   ├── __init__.py
+│   │       │   ├── asset.py
+│   │       │   ├── base.py
+│   │       │   ├── chunk.py
+│   │       │   └── project.py
+│   │       └── __init__.py
 │   ├── llm/                      # Large Language Model integration
-│   │   ├── controllers/          # LLM controllers
-│   │   │   ├── __init__.py       # LLM controllers initialization
+│   │   ├── controllers/
+│   │   │   ├── __init__.py
 │   │   │   ├── factory.py        # LLM provider factory
 │   │   │   └── templates.py      # Template management controller
-│   │   ├── models/               # LLM data models
-│   │   │   ├── enums/            # LLM enumerations
-│   │   │   │   ├── __init__.py   # LLM enums initialization
-│   │   │   │   ├── inputs.py     # Input type enums
-│   │   │   │   ├── locales.py    # Locale enums
-│   │   │   │   ├── providers.py  # LLM provider enums
-│   │   │   │   └── roles.py      # Message role enums
-│   │   │   ├── __init__.py       # LLM models initialization
+│   │   ├── models/
+│   │   │   ├── enums/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── inputs.py
+│   │   │   │   ├── locales.py
+│   │   │   │   ├── providers.py
+│   │   │   │   └── roles.py
+│   │   │   ├── __init__.py
 │   │   │   └── base.py           # Base LLM interfaces
-│   │   ├── providers/            # LLM provider implementations
-│   │   │   ├── __init__.py       # Providers initialization
-│   │   │   ├── cohere_provider.py # Cohere LLM implementation
-│   │   │   └── openai_provider.py # OpenAI LLM implementation
-│   │   ├── templates/            # LLM prompt templates
-│   │   │   ├── locales/          # Localized templates
-│   │   │   │   ├── ar/           # Arabic templates
-│   │   │   │   │   ├── __init__.py
-│   │   │   │   │   └── rag.py    # Arabic RAG templates
-│   │   │   │   ├── en/           # English templates
-│   │   │   │   │   ├── __init__.py
-│   │   │   │   │   └── rag.py    # English RAG templates
-│   │   │   │   └── __init__.py   # Locales initialization
-│   │   │   └── __init__.py       # Templates initialization
-│   │   └── __init__.py           # LLM module initialization
+│   │   ├── providers/
+│   │   │   ├── __init__.py
+│   │   │   ├── cohere_provider.py
+│   │   │   └── openai_provider.py
+│   │   └── templates/            # LLM prompt templates
+│   │       ├── locales/
+│   │       │   ├── ar/
+│   │       │   │   ├── __init__.py
+│   │       │   │   └── rag.py
+│   │       │   ├── en/
+│   │       │   │   ├── __init__.py
+│   │       │   │   └── rag.py
+│   │       │   └── __init__.py
+│   │       └── __init__.py
 │   ├── models/                   # Data models and schemas
-│   │   ├── enums/                # Application enumerations
-│   │   │   ├── __init__.py       # Enums module initialization
-│   │   │   ├── assets.py         # Asset-related enums
-│   │   │   ├── collections.py    # Database collection enums
-│   │   │   ├── documents.py      # Document-related enums
-│   │   │   ├── log_level.py      # Logging level enums
-│   │   │   └── responses.py      # Response signal enums
-│   │   ├── __init__.py           # Models module initialization
-│   │   ├── asset.py              # Asset data models
-│   │   ├── base.py               # Base model classes
-│   │   ├── chunk.py              # Document chunk models
-│   │   ├── project.py            # Project data models
-│   │   └── vector.py             # Vector data models
+│   │   ├── enums/
+│   │   │   ├── __init__.py
+│   │   │   ├── assets.py
+│   │   │   ├── documents.py
+│   │   │   ├── log_level.py
+│   │   │   └── responses.py
+│   │   ├── __init__.py
+│   │   ├── asset.py
+│   │   ├── base.py
+│   │   ├── chunk.py
+│   │   ├── project.py
+│   │   └── vector.py
 │   ├── routes/                   # API route definitions
 │   │   ├── schemas/              # Pydantic request/response schemas
-│   │   │   ├── __init__.py       # Schemas module initialization
-│   │   │   ├── assets.py         # Asset-related schemas
-│   │   │   ├── documents.py      # Document-related schemas
-│   │   │   ├── projects.py       # Project-related schemas
-│   │   │   ├── rag.py            # RAG-related schemas
-│   │   │   └── vectors.py        # Vector-related schemas
-│   │   ├── __init__.py           # Routes module initialization
-│   │   ├── assets.py             # Asset-related routes
-│   │   ├── base.py               # Base route definitions
-│   │   ├── documents.py          # Document-related routes
-│   │   ├── projects.py           # Project-related routes
-│   │   ├── rag.py                # RAG-related routes
-│   │   └── vectors.py            # Vector-related routes
+│   │   │   ├── __init__.py
+│   │   │   ├── assets.py
+│   │   │   ├── documents.py
+│   │   │   ├── projects.py
+│   │   │   ├── rag.py
+│   │   │   └── vectors.py
+│   │   ├── __init__.py
+│   │   ├── assets.py
+│   │   ├── base.py
+│   │   ├── documents.py
+│   │   ├── projects.py
+│   │   ├── rag.py
+│   │   └── vectors.py
 │   ├── vectordb/                 # Vector database integration
-│   │   ├── controllers/          # Vector DB controllers
-│   │   │   ├── __init__.py       # Controllers initialization
+│   │   ├── controllers/
+│   │   │   ├── __init__.py
 │   │   │   └── factory.py        # Vector DB factory
-│   │   ├── models/               # Vector DB models
-│   │   │   ├── enums/            # Vector DB enumerations
-│   │   │   │   ├── __init__.py   # Vector DB enums initialization
-│   │   │   │   ├── providers.py  # Vector DB provider enums
-│   │   │   │   └── similarities.py # Similarity metric enums
-│   │   │   ├── __init__.py       # Vector DB models initialization
-│   │   │   └── base.py           # Base vector DB interfaces
-│   │   ├── providers/            # Vector DB provider implementations
-│   │   │   ├── __init__.py       # Providers initialization
-│   │   │   └── qdrant_provider.py # Qdrant vector DB implementation
-│   │   └── __init__.py           # Vector DB module initialization
+│   │   ├── models/
+│   │   │   ├── enums/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── providers.py
+│   │   │   │   └── similarities.py
+│   │   │   ├── __init__.py
+│   │   │   └── base.py
+│   │   └── providers/
+│   │       ├── __init__.py
+│   │       └── qdrant_provider.py
 │   ├── .env.example              # Environment variables template
 │   ├── .gitignore                # Git ignore file
+│   ├── alembic.ini               # Alembic configuration
 │   ├── config.py                 # Application configuration
 │   ├── dependencies.py           # FastAPI dependency injections
 │   ├── main.py                   # Application entry point
@@ -435,23 +414,20 @@ After completing the installation and environment configuration, you can start u
 
 ### 2. Access the API Documentation
 
-Navigate to the interactive API documentation:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
 ### 3. Basic Workflow
 
-The typical workflow involves these steps:
-
-1. **Create a Project** - Organize your documents into projects
-2. **Upload Documents** - Add PDF or text files to your project
-3. **Process Documents** - Convert documents into searchable chunks
-4. **Index Vectors** - Create embeddings and store them in the vector database
-5. **Perform RAG Queries** - Ask questions and get contextual responses
+1. Create a Project — Organize your documents into projects
+2. Upload Documents — Add PDF or text files to your project
+3. Process Documents — Convert documents into searchable chunks
+4. Index Vectors — Create embeddings and store them in the vector database
+5. Perform RAG Queries — Ask questions and get contextual responses
 
 ### 4. Available API Endpoints
 
-#### Base Endpoints
+Base Endpoints
 
 **`GET /api/v1/`** - Root endpoint
 - Returns application name and version
@@ -459,7 +435,7 @@ The typical workflow involves these steps:
 **`GET /api/v1/health`** - Health check endpoint
 - Returns application health status
 
-#### Project Management
+Project Management
 
 **`POST /api/v1/projects/create`** - Create a new project
 - **Optional**: `name` (string), `description` (string, max 500 chars)
@@ -477,7 +453,7 @@ The typical workflow involves these steps:
 - **Required**: `project_id` (path parameter)
 - **Response**: 204 No Content, 404 if not found
 
-#### Asset Management
+Asset Management
 
 **`POST /api/v1/p/{project_id}/assets/upload`** - Upload single file
 - **Required**: `project_id` (path parameter), `file` (multipart/form-data)
@@ -500,7 +476,7 @@ The typical workflow involves these steps:
 - **Required**: `project_id` (path parameter)
 - **Response**: 204 No Content, 404 if not found
 
-#### Document Processing
+Document Processing
 
 **`POST /api/v1/p/{project_id}/documents/process`** - Process document into chunks
 - **Required**: `project_id` (path parameter), `file_id` (string)
@@ -521,7 +497,7 @@ The typical workflow involves these steps:
 - **Required**: `project_id` (path parameter), `file_id` (path parameter)
 - **Response**: 204 No Content, 404 if not found
 
-#### Vector Operations
+Vector Operations
 
 **`POST /api/v1/p/{project_id}/vectors/index`** - Index document vectors
 - **Required**: `project_id` (path parameter)
@@ -533,7 +509,7 @@ The typical workflow involves these steps:
 - **Optional**: `top_k` (integer, default: 5, min: 1), `threshold` (float, range: 0.0-1.0)
 - **Response**: 200 OK with results and count
 
-#### RAG Operations
+RAG Operations
 
 **`POST /api/v1/p/{project_id}/rag/generate`** - Generate RAG response
 - **Required**: `project_id` (path parameter), `query` (string)
@@ -546,7 +522,7 @@ The typical workflow involves these steps:
 
 ### 5. Request/Response Examples
 
-#### Project Creation
+Project Creation
 **`POST /api/v1/projects/create`**
 
 **Request Body:**
@@ -566,7 +542,7 @@ The typical workflow involves these steps:
 }
 ```
 
-#### Document Processing
+Document Processing
 **`POST /api/v1/p/1867260d-cf8e-4535-9441-54988ad100e3/documents/process`**
 
 **Request Body:**
@@ -596,7 +572,7 @@ The typical workflow involves these steps:
 }
 ```
 
-#### Vector Indexing
+Vector Indexing
 **`POST /api/v1/p/1867260d-cf8e-4535-9441-54988ad100e3/vectors/index`**
 
 **Request Body:**
@@ -606,7 +582,7 @@ The typical workflow involves these steps:
 }
 ```
 
-#### RAG Query
+RAG Query
 **`POST /api/v1/p/1867260d-cf8e-4535-9441-54988ad100e3/rag/generate`**
 
 **Request Body:**
@@ -645,114 +621,118 @@ The typical workflow involves these steps:
 
 ### 6. Parameter Reference
 
-#### Common Parameters
+Common Parameters
 
 | Parameter | Type | Description | Default | Range/Notes |
 |-----------|------|-------------|---------|-------------|
-| `project_id` | string | Project identifier | - | Path parameter |
-| `file_id` | string | File/asset identifier | - | Usually filename |
-| `asset_id` | string | Asset identifier | - | System-generated |
-| `chunk_size` | integer | Document chunk size | 300 | Min: 1 |
-| `chunk_overlap` | integer | Overlap between chunks | 40 | Min: 0 |
-| `top_k` | integer | Number of results to return | 5 | Min: 1 |
-| `threshold` | float | Similarity threshold | - | Range: 0.0-1.0 |
-| `temperature` | float | LLM response creativity | - | Range: 0.0-2.0 |
-| `max_output_tokens` | integer | Maximum response tokens | - | Min: 1 |
-| `reset` | boolean | Reset index before indexing | false | - |
-| `skip` | integer | Number of items to skip | 0 | For pagination |
-| `limit` | integer | Maximum items to return | varies | Max limits vary by endpoint |
+| project_id | string | Project identifier | - | Path parameter |
+| file_id | string | File/asset identifier | - | Usually filename |
+| asset_id | string | Asset identifier | - | System-generated |
+| chunk_size | integer | Document chunk size | 300 | Min: 1 |
+| chunk_overlap | integer | Overlap between chunks | 40 | Min: 0 |
+| top_k | integer | Number of results to return | 5 | Min: 1 |
+| threshold | float | Similarity threshold | - | 0.0-1.0 |
+| temperature | float | LLM response creativity | - | 0.0-2.0 |
+| max_output_tokens | integer | Maximum response tokens | - | Min: 1 |
+| reset | boolean | Reset index before indexing | false | - |
+| skip | integer | Number of items to skip | 0 | Pagination |
+| limit | integer | Maximum items to return | varies | Endpoint-specific |
 
 ### 7. Best Practices
 
-#### Document Upload
-- Use descriptive file names for better organization
-- Ensure PDF files have selectable text (not scanned images)
-- Supported formats: PDF (.pdf) and Text (.txt) files
+Document Upload
+- Use descriptive file names
+- Ensure PDFs have selectable text
+- Supported formats: PDF (.pdf), Text (.txt)
 
-#### Document Processing
-- Adjust `chunk_size` based on document type (300-1000 for most documents)
-- Use appropriate `chunk_overlap` (10-20% of chunk_size) to maintain context
-- Process documents before attempting to index vectors
+Document Processing
+- Adjust chunk_size based on document type (300–1000 typical)
+- Use chunk_overlap ~10–20% of chunk_size
+- Process documents before indexing vectors
 
-#### Vector Operations
-- Always process documents before indexing vectors
-- Use `reset: true` when you want to completely rebuild the index
-- Query vectors to test retrieval before using RAG
+Vector Operations
+- Use reset: true to rebuild the index
+- Test retrieval via vector queries before RAG
 
-#### RAG Queries
-- Start with higher similarity thresholds (0.7-0.8) for precise matches
-- Lower thresholds (0.5-0.6) for broader topic exploration
-- Adjust `top_k` based on query complexity (3-5 for simple, 5-10 for complex)
-- Fine-tune `temperature` for desired response style (0.1-0.3 for factual, 0.7-1.0 for creative)
+RAG Queries
+- Start with higher thresholds (0.7–0.8) for precision
+- Lower thresholds (0.5–0.6) for broader recall
+- Tune top_k (3–5 simple, 5–10 complex)
+- Tune temperature (0.1–0.3 factual, 0.7–1.0 creative)
 
 ### 8. Common Response Codes
 
-| Code | Description | When It Occurs |
-|------|-------------|----------------|
-| 200 | OK | Successful GET requests |
-| 201 | Created | Successful POST operations (creation/processing) |
-| 202 | Accepted | Successful RAG generation |
-| 204 | No Content | Successful DELETE operations |
-| 400 | Bad Request | Invalid file format or parameters |
-| 404 | Not Found | Project/asset/file not found |
-| 422 | Validation Error | Invalid request body structure |
-| 500 | Internal Server Error | Processing failures, missing templates |
+| Code | Description |
+|------|-------------|
+| 200 | OK |
+| 201 | Created |
+| 202 | Accepted |
+| 204 | No Content |
+| 400 | Bad Request |
+| 404 | Not Found |
+| 422 | Validation Error |
+| 500 | Internal Server Error |
 
 ### 9. Error Messages
 
-The application uses standardized error messages through `ResponseSignals`. Common error messages include:
-
-- `PROJECT_NOT_FOUND` - The specified project doesn't exist
-- `ASSET_NOT_FOUND` - The specified asset/file doesn't exist
-- `DOCUMENT_PROCESSING_FAILED` - Document processing failed
-- `VECTOR_INDEXING_FAILED` - Vector indexing operation failed
-- `VECTOR_INDEX_NOT_FOUND` - No vector index exists for the project
-- `VECTOR_INDEX_EMPTY` - Vector index exists but has no vectors
-- `RAG_GENERATION_FAILED` - RAG response generation failed
-- `CHUNK_NOT_FOUND` - No document chunks found
+Common standardized error signals include:
+- FILE_UPLOAD_FAILED: File Upload Failed
+- NO_FILE_PROVIDED: No File Provided
+- UNSUPPORTED_FILE_TYPE: Unsupported File Type
+- FILE_TOO_LARGE: File Too Large
+- FILE_VALIDATION_ERROR: File Validation Error
+- DOCUMENT_PROCESSING_FAILED: Document Processing Failed
+- PROJECT_CREATION_FAILED: Project Creation Failed
+- CHUNK_NOT_FOUND: No Chunks Found for the specified Project or File
+- PROJECT_NOT_FOUND: Project Not Found
+- ASSET_NOT_FOUND: Asset Not Found
+- NO_DOCUMENTS_FOUND: No Documents Found
+- VECTOR_INDEXING_FAILED: Vector Indexing Failed
+- VECTOR_INDEX_NOT_FOUND: Vector Index Not Found
+- VECTOR_INDEX_EMPTY: Vector Index is Empty
+- RAG_GENERATION_FAILED: RAG Generation Failed
+- FILE_NOT_FOUND: File Not Found
+- ASSET_DELETION_FAILED: Asset Deletion Failed
 
 ### 10. Troubleshooting
 
-#### Common Issues
-
-**Upload failures (400):**
+Upload failures (400)
 - Verify file format is PDF or TXT
-- Check file is not corrupted
 - Ensure project exists before uploading
 
-**Processing errors (500):**
-- Confirm uploaded file is readable (for PDFs, text must be selectable)
+Processing errors (500)
+- Confirm uploaded file is readable (PDFs must have selectable text)
 - Verify asset exists in the project
-- Check application logs for detailed error information
+- Check application logs
 
-**Vector indexing failures:**
-- Ensure documents have been processed into chunks first
-- Check that chunks exist for the project
-- Verify embedding model is properly configured
+Vector indexing failures
+- Ensure documents are processed into chunks first
+- Verify chunks exist
+- Verify embedding/model provider configuration
 
-**Empty RAG responses:**
+Empty RAG responses
 - Confirm vector index exists and contains vectors
-- Try lowering similarity threshold (0.5-0.6)
-- Ensure query relates to document content
-- Check that LLM provider is properly configured with valid API keys
+- Lower similarity threshold (e.g., 0.5–0.6)
+- Ensure query matches document content
+- Verify LLM provider API keys
 
-**Template errors in RAG:**
-- Verify template files exist in `src/llm/templates/locales/en/`
+Template errors in RAG
+- Verify local templates exist in `src/llm/templates/locales/`
 - Check template controller configuration
-- Review application logs for missing template errors
+- Review logs for missing template errors
 
-#### Getting Help
+Getting Help
 
 For detailed error information:
 - Check the interactive API documentation at http://localhost:8000/docs
 - Review application logs in `src/assets/logs/app.log`
 - Use the "Try it out" feature in Swagger UI for testing endpoints
-- Check MongoDB and application status with `docker-compose logs`
+- Check Postgres Database and application status with `docker-compose logs`
 - Verify environment configuration matches requirements
 
 ## Future Work
-   - Add support for local [Unstructured Loader](https://python.langchain.com/docs/integrations/document_loaders/unstructured_file/)
+- Add support for local [Unstructured Loader](https://python.langchain.com/docs/integrations/document_loaders/unstructured_file/)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
