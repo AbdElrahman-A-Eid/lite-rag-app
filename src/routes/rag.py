@@ -2,13 +2,15 @@
 API routes for RAG-related operations.
 """
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
-from pymongo.asynchronous.database import AsyncDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from controllers.rag import RAGController
 from controllers.vectors import VectorController
-from dependencies import get_db
+from dependencies import get_session
 from llm.controllers.templates import TemplateController
 from models.enums.responses import ResponseSignals
 from models.project import ProjectModel
@@ -20,24 +22,24 @@ rag_router = APIRouter(prefix="/api/v1/p/{project_id}/rag", tags=["rag", "v1"])
 @rag_router.post("/generate", response_model=RAGQueryResponse)
 async def generate_with_rag(
     request: Request,
-    project_id: str,
+    project_id: UUID,
     rag_request: RAGQueryRequest,
-    mongo_db: AsyncDatabase = Depends(get_db),
+    db_session: AsyncSession = Depends(get_session),
 ):
     """Generate a response using RAG.
 
     Args:
         request (Request): The incoming request.
-        project_id (str): The project ID.
+        project_id (UUID): The project ID.
         rag_request (RAGQueryRequest): The RAG query request.
 
     Returns:
         RAGQueryResponse: The RAG query response.
     """
     settings = request.app.state.settings
-    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_model = ProjectModel(db_session)
     project_record = await project_model.get_project_by_id(project_id)
-    if project_record is None or project_record.object_id is None:
+    if project_record is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
