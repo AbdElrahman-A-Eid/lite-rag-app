@@ -5,7 +5,6 @@ Main application script for Lite-RAG-App
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from pymongo import AsyncMongoClient
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -41,20 +40,13 @@ async def lifespan(fastapi_app: FastAPI):
         database=fastapi_app.state.settings.database_name,
     )
     fastapi_app.state.engine = create_async_engine(
-        db_url.render_as_string(hide_password=False).replace("%", "%%"),
-        expire_on_commit=False,
+        db_url.render_as_string(hide_password=False),
     )
     fastapi_app.state.async_session = async_sessionmaker(
         bind=fastapi_app.state.engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-    fastapi_app.state.mongo_client = AsyncMongoClient(
-        str(fastapi_app.state.settings.mongo_uri)
-    )
-    fastapi_app.state.mongo_db = fastapi_app.state.mongo_client[
-        fastapi_app.state.settings.mongo_db_name
-    ]
 
     llm_factory = LLMProviderFactory(fastapi_app.state.settings)
     fastapi_app.state.embedding_llm = llm_factory.create(
@@ -90,7 +82,6 @@ async def lifespan(fastapi_app: FastAPI):
     await fastapi_app.state.engine.dispose()
     if fastapi_app.state.vectordb_client is not None:
         await fastapi_app.state.vectordb_client.disconnect()
-    await fastapi_app.state.mongo_client.close()
 
 
 app = FastAPI(lifespan=lifespan)
