@@ -41,7 +41,7 @@ class QdrantProvider(VectorDBProviderInterface):
     async def connect(self):
         """Connect to the Qdrant service."""
         self.logger.info("Connecting to Qdrant...")
-        self.client = AsyncQdrantClient(path=self.path)
+        self.client = AsyncQdrantClient(path=str(self.path))
         info = await self.client.info()
         self.logger.info("Connected to Qdrant at %s.", self.path)
         self.logger.info("Qdrant info: %s", info)
