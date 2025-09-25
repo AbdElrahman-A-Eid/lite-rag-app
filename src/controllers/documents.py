@@ -31,8 +31,7 @@ class DocumentController(BaseController):
         """
         super().__init__(settings)
         self.files_dir = self.settings.files_dir
-        self.project_id = str(project_id)
-        self.project_dir = self.files_dir / self.project_id
+        self.project_dir = self.files_dir / str(project_id)
 
     def _get_file_type(self, file_path: Path) -> str:
         """Get the file type based on the file extension.

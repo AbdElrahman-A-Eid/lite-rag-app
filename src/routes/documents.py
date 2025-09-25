@@ -175,7 +175,7 @@ async def refresh_project_documents(
         vector_controller = VectorController(
             settings=settings,
             vectordb_client=request.app.state.vectordb_client,
-            embedding_model=request.app.state.embedding_model,
+            embedding_model=request.app.state.embedding_llm,
         )
         await vector_controller.delete_index(project_record.id)
         deleted_count = await document_chunk_model.delete_chunks_by_project(
@@ -287,7 +287,7 @@ async def list_document_chunks(
         )
 
     # Ensure deterministic ordering by chunk order
-    chunks = sorted(asset_record.document_chunks or [], key=lambda c: c.order)
+    chunks = asset_record.document_chunks
     page = chunks[skip : skip + limit]
 
     if not page:

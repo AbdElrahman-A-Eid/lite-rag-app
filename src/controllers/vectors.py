@@ -184,5 +184,7 @@ class VectorController(BaseController):
             project_id, self.embedding_model.embedding_size_
         )
         self.logger.info("Deleting index: %s", index_name)
-
-        await self.vectordb_client.delete_index(index_name)
+        try:
+            await self.vectordb_client.delete_index(index_name)
+        except Exception as e:
+            self.logger.error("Failed to delete index: %s", str(e), exc_info=True)

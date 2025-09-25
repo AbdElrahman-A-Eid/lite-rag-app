@@ -66,7 +66,7 @@ class DocumentChunkModel(BaseDataModel):
                 await self.db_session.refresh(chunk)
             return chunks
         except Exception as e:
-            self.logger.error("Error inserting assets: %s", str(e))
+            self.logger.error("Error inserting chunks: %s", str(e))
             return []
 
     async def get_chunks_by_project(
