@@ -28,6 +28,7 @@ class VectorController(BaseController):
         """Initialize the VectorController.
 
         Args:
+            settings (Settings): The application settings.
             vectordb_client (VectorDBProviderInterface): The vector database client.
             embedding_model (LLMProviderInterface): The LLM model to use for generating embeddings.
         """
@@ -36,16 +37,17 @@ class VectorController(BaseController):
         self.embedding_model = embedding_model
         self.logger.info("VectorController initialized")
 
-    def _construct_index_name(self, project_id: UUID) -> str:
-        """Construct the index name based on the project ID.
+    def _construct_index_name(self, project_id: UUID, embedding_size: int) -> str:
+        """Construct the index name based on the project ID and embedding size.
 
         Args:
             project_id (UUID): The project ID.
+            embedding_size (int): The size of the embeddings.
 
         Returns:
             str: The constructed index name.
         """
-        return f"index_{str(project_id)}"
+        return f"index_{embedding_size}_{str(project_id)}"
 
     async def create_index(self, project_id: UUID, replace: bool = False):
         """Create a new index for the given project ID.
@@ -54,7 +56,9 @@ class VectorController(BaseController):
             project_id (UUID): The project ID.
             replace (bool): Whether to replace the existing index if it exists.
         """
-        index_name = self._construct_index_name(project_id)
+        index_name = self._construct_index_name(
+            project_id, self.embedding_model.embedding_size_
+        )
         self.logger.info("Creating index: %s", index_name)
 
         await self.vectordb_client.create_index(
@@ -70,7 +74,9 @@ class VectorController(BaseController):
         Returns:
             The index for the project ID.
         """
-        index_name = self._construct_index_name(project_id)
+        index_name = self._construct_index_name(
+            project_id, self.embedding_model.embedding_size_
+        )
         self.logger.info("Getting index info: %s", index_name)
 
         return await self.vectordb_client.get_index_info(index_name)
@@ -108,7 +114,9 @@ class VectorController(BaseController):
             List[RetrievedDocumentChunk]: The list of the retrieved document chunks \
                 relevant to the query.
         """
-        index_name = self._construct_index_name(project_id)
+        index_name = self._construct_index_name(
+            project_id, self.embedding_model.embedding_size_
+        )
         self.logger.info("Querying vectors for project: '%s'...", str(project_id))
 
         query_vector = await self.embedding_model.embed(
@@ -136,7 +144,9 @@ class VectorController(BaseController):
         Returns:
             bool: True if indexing was successful, False otherwise.
         """
-        index_name = self._construct_index_name(project_id)
+        index_name = self._construct_index_name(
+            project_id, self.embedding_model.embedding_size_
+        )
         self.logger.info(
             "Indexing %d vectors for project: '%s'...", len(chunks), str(project_id)
         )
@@ -163,3 +173,16 @@ class VectorController(BaseController):
             vectors=normalized_vectors,
             metadata=metadatas,
         )
+
+    async def delete_index(self, project_id: UUID):
+        """Delete the index for the given project ID.
+
+        Args:
+            project_id (UUID): The project ID.
+        """
+        index_name = self._construct_index_name(
+            project_id, self.embedding_model.embedding_size_
+        )
+        self.logger.info("Deleting index: %s", index_name)
+
+        await self.vectordb_client.delete_index(index_name)
