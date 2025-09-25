@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from controllers import DocumentController, FileController
+from controllers import DocumentController, FileController, VectorController
 from dependencies import get_session
 from models.asset import AssetModel
 from models.chunk import DocumentChunk, DocumentChunkModel
@@ -172,6 +172,12 @@ async def refresh_project_documents(
 
     document_chunk_model = DocumentChunkModel(db_session)
     if refresh_request.replace_existing:
+        vector_controller = VectorController(
+            settings=settings,
+            vectordb_client=request.app.state.vectordb_client,
+            embedding_model=request.app.state.embedding_model,
+        )
+        await vector_controller.delete_index(project_record.id)
         deleted_count = await document_chunk_model.delete_chunks_by_project(
             project_record.id
         )
