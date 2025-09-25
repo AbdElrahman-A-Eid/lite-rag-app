@@ -29,5 +29,10 @@ async def get_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
             await session.commit()
             logger.debug("Transaction committed successfully")
         except Exception as e:
-            logger.error("Error occurred, rolling back: %s", str(e))
+            logger.error(
+                "Error occurred during DB transaction for %s %s, rolling back: %s",
+                request.method,
+                request.url.path,
+                str(e),
+            )
             await session.rollback()
