@@ -4,21 +4,19 @@ Pydantic schemas for the API requests and responses.
 
 from routes.schemas.assets import (
     AssetListResponse,
-    AssetPushResponse,
-    BatchAssetsPushResponse,
+    AssetResponse,
 )
 from routes.schemas.documents import (
+    BatchDocumentsResponse,
+    ChunkListResponse,
     ChunkResponse,
-    DocumentListResponse,
     DocumentProcessingRequest,
-    DocumentProcessingResponse,
     ProjectDocumentsRefreshRequest,
-    ProjectDocumentsRefreshResponse,
 )
 from routes.schemas.projects import (
     ProjectCreationRequest,
-    ProjectCreationResponse,
     ProjectListResponse,
+    ProjectResponse,
 )
 from routes.schemas.vectors import (
     VectorIndexRequest,

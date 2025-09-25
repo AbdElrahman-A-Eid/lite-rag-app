@@ -24,3 +24,4 @@ class ResponseSignals(str, Enum):
     VECTOR_INDEX_EMPTY = "Vector Index is Empty"
     RAG_GENERATION_FAILED = "RAG Generation Failed"
     FILE_NOT_FOUND = "File Not Found"
+    ASSET_DELETION_FAILED = "Asset Deletion Failed"

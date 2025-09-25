@@ -2,8 +2,10 @@
 Controller for document-related operations.
 """
 
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from uuid import UUID
 
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 from langchain_core.document_loaders import BaseLoader
@@ -20,17 +22,16 @@ class DocumentController(BaseController):
     Controller for document-related operations.
     """
 
-    def __init__(self, settings: Settings, project_id: str):
+    def __init__(self, settings: Settings, project_id: UUID):
         """Initialize the DocumentController.
 
         Args:
             settings (Settings): The application settings.
-            project_id (str): The ID of the project.
+            project_id (UUID): The ID of the project.
         """
         super().__init__(settings)
         self.files_dir = self.settings.files_dir
-        self.project_id = project_id
-        self.project_dir = self.files_dir / self.project_id
+        self.project_dir = self.files_dir / str(project_id)
 
     def _get_file_type(self, file_path: Path) -> str:
         """Get the file type based on the file extension.
@@ -63,7 +64,9 @@ class DocumentController(BaseController):
             )
             return None
 
-    def _load_file(self, file_path: Path) -> Optional[Tuple[List[str], List[Dict]]]:
+    async def _load_file(
+        self, file_path: Path
+    ) -> Optional[Tuple[List[str], List[Dict]]]:
         """Load the documents from the file.
 
         Args:
@@ -76,9 +79,11 @@ class DocumentController(BaseController):
         loader = self._get_loader(file_path)
         if loader:
             try:
-                documents = loader.load()
+                documents = await loader.aload()
                 if documents:
-                    file_texts = [doc.page_content for doc in documents]
+                    file_texts = [
+                        self._cleanup_text(doc.page_content) for doc in documents
+                    ]
                     file_metadatas = [doc.metadata for doc in documents]
                     return file_texts, file_metadatas
             except Exception as e:
@@ -87,7 +92,18 @@ class DocumentController(BaseController):
                 )
         return None
 
-    def process_file(
+    def _cleanup_text(self, text: str) -> str:
+        """Clean up the text by removing problematic characters.
+
+        Args:
+            text (str): The text to clean up.
+
+        Returns:
+            str: The cleaned-up text.
+        """
+        return re.sub(r"[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]", "", text)
+
+    async def process_file(
         self, file_id: str, chunk_size: int, chunk_overlap: int
     ) -> Optional[List[Document]]:
         """Process the file and extract chunk documents.
@@ -100,7 +116,7 @@ class DocumentController(BaseController):
             if it was loaded successfully.
         """
         file_path = self.project_dir / file_id
-        file_documents = self._load_file(file_path)
+        file_documents = await self._load_file(file_path)
         if file_documents is not None:
             file_texts, file_metadatas = file_documents
             splitter = RecursiveCharacterTextSplitter(

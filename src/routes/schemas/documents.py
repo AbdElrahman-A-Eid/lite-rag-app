@@ -2,9 +2,36 @@
 Pydantic schemas for document-related requests and responses.
 """
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class Chunk(BaseModel):
+    """Pydantic model for a document chunk."""
+
+    id: UUID = Field(..., description="The unique identifier of the chunk")
+    project_id: UUID = Field(
+        ..., description="The ID of the project this chunk belongs to"
+    )
+    asset_id: UUID = Field(..., description="The ID of the asset this chunk belongs to")
+    order: int = Field(..., description="The order of the chunk in the document")
+    content: str = Field(..., description="The text content of the chunk")
+    metadata_: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Metadata associated with the chunk",
+        serialization_alias="metadata",
+    )
+    created_at: datetime = Field(
+        description="The timestamp when the chunk was created.",
+    )
+    updated_at: datetime = Field(
+        description="The timestamp when the chunk was last updated.",
+    )
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DocumentProcessingRequest(BaseModel):
@@ -15,6 +42,9 @@ class DocumentProcessingRequest(BaseModel):
     chunk_overlap: int = Field(
         ge=0, description="The overlap between chunks.", default=40
     )
+    replace_existing: bool = Field(
+        default=False, description="Whether to replace existing chunks for the asset."
+    )
 
 
 class ProjectDocumentsRefreshRequest(BaseModel):
@@ -24,56 +54,45 @@ class ProjectDocumentsRefreshRequest(BaseModel):
     chunk_overlap: int = Field(
         ge=0, description="The overlap between chunks.", default=40
     )
+    replace_existing: bool = Field(
+        default=False, description="Whether to replace all existing chunks."
+    )
 
 
 class ChunkResponse(BaseModel):
     """Response model for a document chunk."""
 
-    chunk_order: int = Field(description="The order of the chunk in the document.")
-    page_content: str = Field(description="The text content of the chunk.")
-    metadata: Dict[str, Any] = Field(description="Metadata associated with the chunk.")
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class DocumentProcessingResponse(BaseModel):
-    """Response schema for document processing."""
-
-    project_id: str = Field(description="The ID of the project.")
-    file_id: str = Field(description="The ID of the file.")
-    chunks: Optional[List[ChunkResponse]] = Field(
-        default=None, description="The list of document chunks."
-    )
-    count: Optional[int] = Field(default=None, description="The number of chunks.")
+    value: Optional[Chunk] = Field(default=None, description="The document chunk data.")
     msg: Optional[str] = Field(
         default=None, description="A message indicating the result of the processing."
     )
 
 
-class ProjectDocumentsRefreshResponse(BaseModel):
-    """Response schema for refreshing project documents."""
-
-    project_id: str = Field(description="The ID of the project.")
-    assets: List[DocumentProcessingResponse] = Field(
-        default_factory=list,
-        description="The list of asset processing responses associated with the project.",
-    )
-    msg: Optional[str] = Field(
-        default=None,
-        description="A message indicating a general result of the refresh.",
-    )
-
-
-class DocumentListResponse(BaseModel):
+class ChunkListResponse(BaseModel):
     """Response schema for listing document chunks."""
 
-    project_id: str = Field(description="The ID of the project.")
-    file_id: str = Field(description="The ID of the file.")
-    chunks: Optional[List[ChunkResponse]] = Field(
+    values: Optional[List[Chunk]] = Field(
         default=None, description="The list of document chunks."
     )
     count: Optional[int] = Field(default=None, description="The number of chunks.")
-    total: int = Field(default=0, description="The total number of chunks.")
+    total: Optional[int] = Field(
+        default=None, description="The total number of chunks."
+    )
     msg: Optional[str] = Field(
         default=None, description="A message indicating the result of the processing."
+    )
+
+
+class BatchDocumentsResponse(BaseModel):
+    """Response schema for batch document processing."""
+
+    values: Dict[str, ChunkListResponse] = Field(
+        default_factory=dict,
+        description="A mapping of asset names to their chunk responses.",
+    )
+    count: Optional[int] = Field(
+        default=None, description="The number of successful assets."
+    )
+    total: Optional[int] = Field(
+        default=None, description="The total number of assets."
     )

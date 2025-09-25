@@ -7,12 +7,13 @@ mypy>=1.18.1
 
 # Project's runtime dependencies
 aiofiles==24.1.0
+alembic==1.16.5
+asyncpg==0.30.0
 cohere==5.17.0
 fastapi==0.116.1
 langchain-community==0.3.28
 openai==1.105.0
 pydantic-settings==2.10.1
-pymongo==4.14.1
 PyMuPDF==1.26.4
 python-multipart==0.0.20
 qdrant-client==1.15.1

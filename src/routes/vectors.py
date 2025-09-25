@@ -2,12 +2,14 @@
 API routes for vector-related operations.
 """
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
-from pymongo.asynchronous.database import AsyncDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from controllers import VectorController
-from dependencies import get_db
+from dependencies import get_session
 from models.chunk import DocumentChunkModel
 from models.enums import ResponseSignals
 from models.project import ProjectModel
@@ -26,42 +28,39 @@ vector_router = APIRouter(
 @vector_router.post("/index", response_model=VectorIndexResponse)
 async def index_vectors(
     request: Request,
-    project_id: str,
+    project_id: UUID,
     index_request: VectorIndexRequest,
-    mongo_db: AsyncDatabase = Depends(get_db),
+    db_session: AsyncSession = Depends(get_session),
 ):
     """Index vectors for a specific project.
 
     Args:
         request (Request): The FastAPI request object.
-        project_id (str): The ID of the project to index vectors for.
+        project_id (UUID): The ID of the project to index vectors for.
         index_request (VectorIndexRequest): The request object containing indexing parameters.
-        mongo_db (AsyncDatabase, optional): The MongoDB database instance. \
-            Defaults to Depends(get_db).
+        db_session (AsyncSession): The SQLAlchemy database async session.
 
     Returns:
         VectorIndexResponse: The response object containing the result of the indexing operation.
     """
     settings = request.app.state.settings
-    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_model = ProjectModel(db_session)
     project_record = await project_model.get_project_by_id(project_id)
-    if project_record is None or project_record.object_id is None:
+    if project_record is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
 
-    document_chunk_model = await DocumentChunkModel.create_instance(mongo_db=mongo_db)
-    chunk_count = await document_chunk_model.count_chunks_by_project(
-        project_record.object_id
-    )
+    document_chunk_model = DocumentChunkModel(db_session)
+    chunk_count = await document_chunk_model.count_chunks_by_project(project_record.id)
     if chunk_count == 0:
         return JSONResponse(
             content={"msg": ResponseSignals.NO_DOCUMENTS_FOUND.value},
             status_code=status.HTTP_404_NOT_FOUND,
         )
-    chunks = await document_chunk_model.get_chunk_by_project(
-        project_record.object_id, skip=0, limit=chunk_count
+    chunks = await document_chunk_model.get_chunks_by_project(
+        project_record.id, skip=0, limit=chunk_count
     )
 
     vector_controller = VectorController(
@@ -70,7 +69,7 @@ async def index_vectors(
         embedding_model=request.app.state.embedding_llm,
     )
     inserted = await vector_controller.index_vectors(
-        project_id=project_id, chunks=chunks, reset=index_request.reset
+        project_id=project_id, chunks=list(chunks), reset=index_request.reset
     )
     if not inserted:
         return JSONResponse(
@@ -86,26 +85,25 @@ async def index_vectors(
 @vector_router.post("/query", response_model=VectorQueryResponse)
 async def query_vectors(
     request: Request,
-    project_id: str,
+    project_id: UUID,
     query_request: VectorQueryRequest,
-    mongo_db: AsyncDatabase = Depends(get_db),
+    db_session: AsyncSession = Depends(get_session),
 ):
     """Query vectors for a specific project.
 
     Args:
         request (Request): The FastAPI request object.
-        project_id (str): The ID of the project to query vectors for.
+        project_id (UUID): The ID of the project to query vectors for.
         query_request (VectorQueryRequest): The request object containing query parameters.
-        mongo_db (AsyncDatabase, optional): The MongoDB database instance. \
-            Defaults to Depends(get_db).
+        db_session (AsyncSession): The SQLAlchemy database async session.
 
     Returns:
         VectorQueryResponse: The response object containing the result of the query operation.
     """
     settings = request.app.state.settings
-    project_model = await ProjectModel.create_instance(mongo_db=mongo_db)
+    project_model = ProjectModel(db_session)
     project_record = await project_model.get_project_by_id(project_id)
-    if project_record is None or project_record.object_id is None:
+    if project_record is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},

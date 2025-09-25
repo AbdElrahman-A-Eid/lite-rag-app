@@ -4,7 +4,7 @@ Controllers for asset management operations.
 
 import re
 from typing import Tuple
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import aiofiles
 from fastapi import UploadFile
@@ -52,17 +52,17 @@ class FileController(BaseController):
             file.file.seek(current_position)
         return file_size_mb
 
-    def file_exists(self, project_id: str, file_id: str) -> bool:
+    def file_exists(self, project_id: UUID, file_id: str) -> bool:
         """Check if a file exists in the project directory.
 
         Args:
-            project_id (str): The ID of the project.
+            project_id (UUID): The ID of the project.
             file_id (str): The ID of the file.
 
         Returns:
             bool: True if the file exists, False otherwise.
         """
-        file_path = self.files_dir / project_id / file_id
+        file_path = self.files_dir / str(project_id) / file_id
         return file_path.exists()
 
     def validate_file(self, file: UploadFile) -> Tuple[bool, str]:
@@ -111,25 +111,26 @@ class FileController(BaseController):
             self.logger.error("Validation error occurred: %s", str(e), exc_info=True)
             return False, error_msg
 
-    async def write_file(self, file: UploadFile, project_id: str) -> Tuple[bool, str]:
+    async def write_file(self, file: UploadFile, project_id: UUID) -> Tuple[bool, str]:
         """Writes an uploaded file to the file system.
 
         Args:
             file (UploadFile): The uploaded file.
-            project_id (str): The ID of the project to which the file belongs.
+            project_id (UUID): The ID of the project to which the file belongs.
 
         Returns:
             Tuple[bool, str]: A tuple containing a success flag and error message in
             case of failure.
         """
         try:
+            project_id_str = str(project_id)
             filename: str = file.filename or ""
             file_id = self._generate_unique_filename(filename)
-            file_path = self.files_dir / project_id / file_id
+            file_path = self.files_dir / project_id_str / file_id
 
             while file_path.exists():
                 file_id = self._generate_unique_filename(filename)
-                file_path = self.files_dir / project_id / file_id
+                file_path = self.files_dir / project_id_str / file_id
 
             await file.seek(0)
 

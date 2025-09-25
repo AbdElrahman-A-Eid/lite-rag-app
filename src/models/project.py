@@ -2,53 +2,15 @@
 Model definitions for projects.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Optional, Sequence
+from uuid import UUID
 
-from bson.objectid import ObjectId
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pymongo import IndexModel
-from pymongo.asynchronous.database import AsyncDatabase
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import functions
 
-from models.asset import AssetModel
-from models.base import BaseDataModel, MongoObjectId
-from models.enums import CollectionNames
-
-
-class Project(BaseModel):
-    """Database Schema for the Project Entity"""
-
-    object_id: Optional[MongoObjectId] = Field(default=None, alias="_id")
-    id: str
-    name: Optional[str] = Field(default=None, max_length=100)
-    description: Optional[str] = Field(
-        default="No description provided.", max_length=500
-    )
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    @model_validator(mode="after")
-    def fill_default_name(self):
-        """Fill default name if not provided."""
-        if not self.name:
-            self.name = f"Project-{self.id}"
-        return self
-
-    @staticmethod
-    def get_index_fields() -> List[Dict[str, Any]]:
-        """Get the index fields for the DocumentChunk model.
-
-        Returns:
-            A list of index field names.
-        """
-        return [
-            {
-                "keys": [
-                    ("id", 1),
-                ],
-                "name": "id_index_1",
-                "unique": True,
-            },
-        ]
+from databases.lite_rag.schemas import Project
+from models.base import BaseDataModel
 
 
 class ProjectModel(BaseDataModel):
@@ -56,58 +18,35 @@ class ProjectModel(BaseDataModel):
     Model for the Project entity.
     """
 
-    def __init__(self, mongo_db: AsyncDatabase):
+    def __init__(self, db_session: AsyncSession):
         """Initialize the Project model.
 
         Args:
-            mongo_db (AsyncDatabase): The MongoDB database async instance.
+            db_session (AsyncSession): The SQLAlchemy database async session.
         """
-        super().__init__(mongo_db)
-        self.collection = self.mongo_db[CollectionNames.PROJECTS.value]
+        super().__init__(db_session)
+        self.logger.info("ProjectModel initialized")
 
-    @classmethod
-    async def create_instance(cls, mongo_db: AsyncDatabase) -> "ProjectModel":
-        """Create a new instance of the Project model.
-
-        Args:
-            mongo_db (AsyncDatabase): The MongoDB database async instance.
-
-        Returns:
-            ProjectModel: The new instance of the Project model.
-        """
-        instance = cls(mongo_db)
-        await instance.create_index_fields()
-        return instance
-
-    async def create_index_fields(self):
-        """Create the index fields for the Project model."""
-        self.logger.info("Checking index fields for Project model...")
-        index_fields = Project.get_index_fields()
-        index_info = await self.collection.index_information()
-        if any(not index_info.get(index_field["name"]) for index_field in index_fields):
-            await self.collection.create_indexes(
-                [IndexModel(**index_field) for index_field in index_fields]
-            )
-            self.logger.info(
-                "Created %d index fields for Project model.", len(index_fields)
-            )
-
-    async def insert_project(self, project: Project) -> Project:
+    async def insert_project(self, project: Project) -> Optional[Project]:
         """Insert a new project into the database.
 
         Args:
             project (Project): The project to insert.
 
         Returns:
-            Project: The inserted project with the assigned object_id.
+            Optional[Project]: The project with the assigned id if successfully inserted. \
+                None otherwise.
         """
-        record = await self.collection.insert_one(
-            project.model_dump(exclude={"object_id"})
-        )
-        project.object_id = record.inserted_id
-        return project
+        try:
+            self.db_session.add(project)
+            await self.db_session.flush()
+            await self.db_session.refresh(project)
+            return project
+        except Exception as e:
+            self.logger.error("Error inserting project: %s", str(e))
+            return None
 
-    async def get_projects(self, skip: int = 0, limit: int = 10) -> List[Project]:
+    async def get_projects(self, skip: int = 0, limit: int = 10) -> Sequence[Project]:
         """Get a list of projects from the database.
 
         Args:
@@ -115,71 +54,45 @@ class ProjectModel(BaseDataModel):
             limit (int, optional): The maximum number of projects to return. Defaults to 10.
 
         Returns:
-            List[Project]: A list of projects.
+            Sequence[Project]: A list of projects.
         """
-        cursor = self.collection.find().skip(skip).limit(limit)
-        projects = await cursor.to_list(length=limit)
-        return [Project(**project) for project in projects]
+        result = await self.db_session.execute(
+            select(Project).offset(skip).limit(limit)
+        )
+        projects = result.scalars().all()
+        return projects
 
-    async def get_project_by_id(self, project_id: str) -> Optional[Project]:
+    async def get_project_by_id(self, project_id: UUID) -> Optional[Project]:
         """Get a project by its ID from the database.
 
         Args:
-            project_id (str): The ID of the project.
+            project_id (UUID): The ID of the project.
 
         Returns:
-            Optional[Project]: The project if found, None otherwise.
+            Optional[Project]: The project with the specified ID, or None if not found.
         """
-        project_data = await self.collection.find_one({"id": project_id})
-        if project_data:
-            return Project(**project_data)
-        return None
+        result = await self.db_session.execute(
+            select(Project).where(Project.id == project_id)
+        )
+        project = result.scalar_one_or_none()
+        return project
 
-    async def get_project_object_id(self, project_id: str) -> Optional[ObjectId]:
-        """Get the ObjectId of a project by its ID.
-
-        Args:
-            project_id (str): The ID of the project.
-
-        Returns:
-            Optional[ObjectId]: The ObjectId of the project if found, None otherwise.
-        """
-        project = await self.get_project_by_id(project_id)
-        return project.object_id if project else None
-
-    async def get_project_id(self, project_object_id: ObjectId) -> Optional[str]:
-        """Get the ID of a project by its ObjectId.
-
-        Args:
-            project_object_id (ObjectId): The ObjectId of the project.
-
-        Returns:
-            Optional[str]: The ID of the project if found, None otherwise.
-        """
-        project = await self.collection.find_one({"_id": project_object_id})
-        return project.id if project else None
-
-    async def delete_project(self, project_id: str) -> bool:
+    async def delete_project(self, project_id: UUID) -> bool:
         """Delete a project by its ID from the database and its associated data.
 
         Args:
-            project_id (str): The ID of the project.
+            project_id (UUID): The ID of the project.
 
         Returns:
             bool: True if the project was deleted, False otherwise.
         """
-        project = await ProjectModel(self.mongo_db).collection.find_one(
-            {"id": project_id}
+        result = await self.db_session.execute(
+            delete(Project).where(
+                Project.id == project_id,
+            )
         )
-        project_object_id: Optional[ObjectId] = project["_id"] if project else None
-        if not project_object_id:
-            return False
-        asset_model = await AssetModel.create_instance(self.mongo_db)
-        await asset_model.delete_assets_by_project(project_object_id)
-        result = await self.collection.delete_one({"_id": project_object_id})
-        if result.deleted_count != 0:
-            return True
-        return False
+        deleted_count = result.rowcount or 0
+        return deleted_count > 0
 
     async def count_projects(self) -> int:
         """Count the total number of projects in the database.
@@ -187,4 +100,6 @@ class ProjectModel(BaseDataModel):
         Returns:
             int: The total number of projects.
         """
-        return await self.collection.count_documents({})
+        result = await self.db_session.execute(select(functions.count(Project.id)))
+        total = result.scalar_one()
+        return total

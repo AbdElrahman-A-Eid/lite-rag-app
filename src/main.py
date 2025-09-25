@@ -5,7 +5,8 @@ Main application script for Lite-RAG-App
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from pymongo import AsyncMongoClient
+from sqlalchemy.engine import URL
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from config import get_settings, setup_logging
 from llm.controllers.factory import LLMProviderFactory
@@ -30,12 +31,22 @@ async def lifespan(fastapi_app: FastAPI):
     fastapi_app.title = fastapi_app.state.settings.app_name
     fastapi_app.version = fastapi_app.state.settings.app_version
     setup_logging(fastapi_app.state.settings)
-    fastapi_app.state.mongo_client = AsyncMongoClient(
-        str(fastapi_app.state.settings.mongo_uri)
+    db_url = URL.create(
+        "postgresql+asyncpg",
+        username=fastapi_app.state.settings.database_username,
+        password=fastapi_app.state.settings.database_password,
+        host=fastapi_app.state.settings.database_hostname,
+        port=fastapi_app.state.settings.database_port,
+        database=fastapi_app.state.settings.database_name,
     )
-    fastapi_app.state.mongo_db = fastapi_app.state.mongo_client[
-        fastapi_app.state.settings.mongo_db_name
-    ]
+    fastapi_app.state.engine = create_async_engine(
+        db_url.render_as_string(hide_password=False),
+    )
+    fastapi_app.state.async_session = async_sessionmaker(
+        bind=fastapi_app.state.engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
     llm_factory = LLMProviderFactory(fastapi_app.state.settings)
     fastapi_app.state.embedding_llm = llm_factory.create(
@@ -68,9 +79,9 @@ async def lifespan(fastapi_app: FastAPI):
 
     yield
 
+    await fastapi_app.state.engine.dispose()
     if fastapi_app.state.vectordb_client is not None:
         await fastapi_app.state.vectordb_client.disconnect()
-    await fastapi_app.state.mongo_client.close()
 
 
 app = FastAPI(lifespan=lifespan)

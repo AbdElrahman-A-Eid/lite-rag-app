@@ -184,5 +184,6 @@ class BaseLLMProvider(LLMProviderInterface):
             int: The embedding size.
         """
         if self.embedding_size is None:
-            raise ValueError("Embedding model is not set.")
+            self.logger.error("Embedding model is not set.")
+            return 0
         return self.embedding_size

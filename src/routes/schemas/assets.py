@@ -2,17 +2,20 @@
 Schemas for file-related requests and responses.
 """
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from models.enums import AssetType
 
 
-class AssetPushResponse(BaseModel):
-    """Response schema for asset push."""
+class Asset(BaseModel):
+    """Pydantic model for an asset."""
 
-    project_id: str = Field(
+    id: UUID = Field(..., description="The unique identifier of the asset")
+    project_id: UUID = Field(
         ..., description="The ID of the project this asset belongs to"
     )
     type: AssetType = Field(
@@ -25,34 +28,36 @@ class AssetPushResponse(BaseModel):
     config: Dict[str, Any] = Field(
         default_factory=dict, description="Various config of the asset"
     )
+    created_at: datetime = Field(
+        description="The timestamp when the asset was created.",
+    )
+    updated_at: datetime = Field(
+        description="The timestamp when the asset was last updated.",
+    )
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AssetResponse(BaseModel):
+    """Response schema for asset operations."""
+
+    value: Optional[Asset] = Field(
+        default=None, description="The asset object if the operation was successful"
+    )
     msg: Optional[str] = Field(
-        default=None, description="A message indicating the result of the upload"
-    )
-
-
-class BatchAssetsPushResponse(BaseModel):
-    """Response schema for batch asset push."""
-
-    project_id: str = Field(
-        ..., description="The ID of the project this asset belongs to"
-    )
-    assets: List[AssetPushResponse] = Field(
-        default_factory=list, description="List of assets that were uploaded"
-    )
-    msgs: Optional[List[Dict[str, str]]] = Field(
-        default=None, description="Messages indicating the results of the upload"
+        default=None, description="A message indicating the result of the operation"
     )
 
 
 class AssetListResponse(BaseModel):
-    """Response schema for listing assets."""
+    """Response schema for operations involving multiple assets."""
 
-    assets: List[AssetPushResponse] = Field(
-        default_factory=list, description="List of assets for the project"
+    values: Optional[List[Asset]] = Field(default=None, description="List of assets")
+    count: Optional[int] = Field(default=None, description="The number of assets")
+    total: Optional[int] = Field(
+        default=None, description="The total number of assets."
     )
-    count: Optional[int] = Field(
-        default=None, description="Total number of assets for the project"
-    )
-    msg: Optional[str] = Field(
-        default=None, description="A message indicating the result of the asset listing"
+    msgs: Optional[List[Dict[str, str]]] = Field(
+        default=None,
+        description="A list of message dictionaries indicating the results of the asset operations",
     )

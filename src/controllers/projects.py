@@ -3,7 +3,7 @@ Controllers for project management operations.
 """
 
 from typing import List
-from uuid import uuid4
+from uuid import UUID
 
 from config import Settings
 from controllers.base import BaseController
@@ -19,54 +19,61 @@ class ProjectController(BaseController):
         self.files_dir = self.settings.files_dir
         self.files_dir.mkdir(parents=True, exist_ok=True)
 
-    def create_new_project(self) -> str:
-        """Creates a new project directory.
-
-        Returns:
-            str: The ID of the newly created project or an error message.
+    def create_new_project(self, project_id: UUID) -> bool:
         """
-        project_id = str(uuid4())
-        project_dir = self.files_dir / project_id
-        while project_dir.exists():
-            project_id = str(uuid4())
-            project_dir = self.files_dir / project_id
+        Creates a new project directory.
+
+        Args:
+            project_id (UUID): The unique identifier for the new project.
+        Returns:
+            bool: True if the project was created successfully, False otherwise.
+        """
+        project_id_str = str(project_id)
+        project_dir = self.files_dir / project_id_str
+        if project_dir.exists():
+            self.logger.warning("Project directory already exists: %s", project_id_str)
+            return False
         try:
             project_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.info("Created new project with ID: %s", project_id)
-            return project_id
+            self.logger.info("Created new project with ID: %s", project_id_str)
+            return True
         except Exception as e:
             self.logger.error(
                 "Failed to create project directory: %s", str(e), exc_info=True
             )
-            return ""
+            return False
 
     def list_projects(self) -> List[str]:
-        """Lists all existing project directories.
+        """
+        Lists all existing project directories.
 
         Returns:
             List[str]: A list of project IDs.
         """
         return [d.name for d in self.files_dir.iterdir() if d.is_dir()]
 
-    def validate_project(self, project_id: str) -> bool:
-        """Validates the existence of a project directory.
+    def validate_project(self, project_id: UUID) -> bool:
+        """
+        Validates the existence of a project directory.
 
         Args:
-            project_id (str): The ID of the project to validate.
+            project_id (UUID): The unique identifier for the new project.
 
         Returns:
             bool: True if the project exists, False otherwise.
         """
-        project_dir = self.files_dir / project_id
+        project_id_str = str(project_id)
+        project_dir = self.files_dir / project_id_str
         return project_dir.is_dir()
 
-    def delete_project_folder(self, project_id: str) -> None:
+    def delete_project_folder(self, project_id: UUID) -> None:
         """Deletes a project directory including all its files.
 
         Args:
-            project_id (str): The ID of the project to delete.
+            project_id (UUID): The unique identifier for the project to delete.
         """
-        project_dir = self.files_dir / project_id
+        project_id_str = str(project_id)
+        project_dir = self.files_dir / project_id_str
         files_count = 0
         if project_dir.is_dir():
             for item in project_dir.iterdir():
@@ -81,22 +88,23 @@ class ProjectController(BaseController):
                     item.rmdir()
             project_dir.rmdir()
             self.logger.info(
-                "Deleted project directory: %s (%d files)", project_id, files_count
+                "Deleted project directory: %s (%d files)", project_id_str, files_count
             )
         else:
-            self.logger.warning("Project directory not found: %s", project_id)
+            self.logger.warning("Project directory not found: %s", project_id_str)
 
-    def delete_file(self, project_id: str, file_name: str) -> bool:
+    def delete_file(self, project_id: UUID, file_name: str) -> bool:
         """Deletes a specific file from a project directory.
 
         Args:
-            project_id (str): The ID of the project.
+            project_id (UUID): The unique identifier for the project.
             file_name (str): The name of the file to delete.
 
         Returns:
             bool: True if the file was deleted successfully, False otherwise.
         """
-        project_dir = self.files_dir / project_id
+        project_id_str = str(project_id)
+        project_dir = self.files_dir / project_id_str
         file_path = project_dir / file_name
         if file_path.is_file():
             file_path.unlink()
@@ -106,11 +114,11 @@ class ProjectController(BaseController):
             self.logger.warning("File not found: %s", file_path)
             return False
 
-    def delete_project_files(self, project_id: str, file_names: List[str]) -> bool:
+    def delete_project_files(self, project_id: UUID, file_names: List[str]) -> bool:
         """Deletes multiple files from a project directory.
 
         Args:
-            project_id (str): The ID of the project.
+            project_id (UUID): The unique identifier for the project.
             file_names (List[str]): A list of file names to delete.
 
         Returns:
