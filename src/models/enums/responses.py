@@ -25,3 +25,5 @@ class ResponseSignals(str, Enum):
     RAG_GENERATION_FAILED = "RAG Generation Failed"
     FILE_NOT_FOUND = "File Not Found"
     ASSET_DELETION_FAILED = "Asset Deletion Failed"
+    FILE_NO_NAME_PROVIDED = "File has no name"
+    ASSET_CREATION_FAILED = "Asset Creation Failed"

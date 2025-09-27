@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
-from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
-from langchain_core.document_loaders import BaseLoader
+from langchain_community.document_loaders import Blob
+from langchain_community.document_loaders.parsers import PyMuPDFParser
+from langchain_community.document_loaders.parsers.txt import TextParser
+from langchain_core.document_loaders import BaseBlobParser
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -30,65 +32,69 @@ class DocumentController(BaseController):
             project_id (UUID): The ID of the project.
         """
         super().__init__(settings)
-        self.files_dir = self.settings.files_dir
-        self.project_dir = self.files_dir / str(project_id)
+        self.logger.info("Initializing DocumentController")
+        self.project_id = project_id
 
-    def _get_file_type(self, file_path: Path) -> str:
+    def _get_file_type(self, filename: str) -> str:
         """Get the file type based on the file extension.
 
         Args:
-            file_path (Path): The path to the file.
+            filename (str): The name of the file.
 
         Returns:
             str: The file type.
         """
-        return file_path.suffix.lower()
+        return Path(filename).suffix.lower()
 
-    def _get_loader(self, file_path: Path) -> Optional[BaseLoader]:
-        """Get the document loader based on the file type.
+    def _get_parser(self, filename: str) -> Optional[BaseBlobParser]:
+        """Get the document parser based on the file type.
 
         Args:
-            file_path (Path): The path to the file.
+            filename (str): The name of the file.
 
         Returns:
-            BaseLoader: The document loader for the specified file type.
+            BaseLoader: The document prser for the specified file type.
         """
-        file_type = self._get_file_type(file_path)
+        file_type = self._get_file_type(filename)
         if file_type == DocumentFileType.PDF.value:
-            return PyMuPDFLoader(file_path, mode="page")
+            return PyMuPDFParser(mode="page")
         elif file_type == DocumentFileType.TXT.value:
-            return TextLoader(file_path, encoding="utf8")
+            return TextParser()
         else:
             self.logger.warning(
-                "Unsupported file type: %s (at %s)", file_type, file_path
+                "Unsupported file type: %s (name: %s)", file_type, filename
             )
             return None
 
     async def _load_file(
-        self, file_path: Path
+        self, filename: str, data: bytes, content_type: str
     ) -> Optional[Tuple[List[str], List[Dict]]]:
         """Load the documents from the file.
 
         Args:
-            file_path (Path): The path to the file.
+            filename (str): The name of the file.
+            data (bytes): The file data.
+            content_type (str): The content type of the file.
 
         Returns:
             Optional[Tuple[List[str], List[Dict]]]: The list of loaded document text contents
             and their metadata, or None if loading failed.
         """
-        loader = self._get_loader(file_path)
-        if loader:
+        parser = self._get_parser(filename)
+        if parser:
             try:
-                documents = await loader.aload()
-                if documents:
-                    file_texts = [
-                        self._cleanup_text(doc.page_content) for doc in documents
-                    ]
-                    file_metadatas = [doc.metadata for doc in documents]
+                blob = Blob.from_data(data=data, mime_type=content_type)
+                documents = parser.lazy_parse(blob)
+                file_texts = []
+                file_metadatas = []
+                for doc in documents:
+                    file_texts.append(self._cleanup_text(doc.page_content))
+                    file_metadatas.append(doc.metadata)
+                if file_texts:
                     return file_texts, file_metadatas
             except Exception as e:
                 self.logger.error(
-                    "Failed to load file at %s: %s", file_path, str(e), exc_info=True
+                    "Failed to load file %s: %s", filename, str(e), exc_info=True
                 )
         return None
 
@@ -104,19 +110,29 @@ class DocumentController(BaseController):
         return re.sub(r"[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]", "", text)
 
     async def process_file(
-        self, file_id: str, chunk_size: int, chunk_overlap: int
+        self,
+        filename: str,
+        data: bytes,
+        content_type: str,
+        chunk_size: int,
+        chunk_overlap: int,
     ) -> Optional[List[Document]]:
         """Process the file and extract chunk documents.
 
         Args:
-            file_id (str): The ID of the file.
+            filename (str): The name of the file.
+            data (bytes): The file data.
+            content_type (str): The content type of the file.
+            chunk_size (int): The size of each text chunk.
+            chunk_overlap (int): The overlap between text chunks.
 
         Returns:
             Optional[List[Document]]: The list of processed chunk documents
             if it was loaded successfully.
         """
-        file_path = self.project_dir / file_id
-        file_documents = await self._load_file(file_path)
+        file_documents = await self._load_file(
+            filename=filename, data=data, content_type=content_type
+        )
         if file_documents is not None:
             file_texts, file_metadatas = file_documents
             splitter = RecursiveCharacterTextSplitter(

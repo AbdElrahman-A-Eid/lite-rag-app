@@ -21,6 +21,7 @@ from databases.lite_rag.schemas.base import Base, PKUUIDMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from databases.lite_rag.schemas.chunk import DocumentChunk
+    from databases.lite_rag.schemas.file import File
     from databases.lite_rag.schemas.project import Project
 
 
@@ -44,6 +45,13 @@ class Asset(PKUUIDMixin, TimestampMixin, Base):
     document_chunks: Mapped[List["DocumentChunk"]] = relationship(
         back_populates="asset", cascade="all, delete-orphan", lazy="selectin"
     )
+    file: Mapped[Optional["File"]] = relationship(
+        "File",
+        back_populates="asset",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        lazy="joined",
+    )
 
     __table_args__ = (
         Index(
@@ -61,5 +69,5 @@ class Asset(PKUUIDMixin, TimestampMixin, Base):
     def __repr__(self) -> str:
         return (
             f"<Asset(id={self.id}, project_id={self.project_id}, "
-            f"name={self.name}), type={self.type}>"
+            f"name={self.name}, type={self.type})>"
         )
