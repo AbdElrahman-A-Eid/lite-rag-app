@@ -5,11 +5,10 @@ Projects API routes for Lite-RAG-App
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from controllers import ProjectController
 from dependencies import get_session
 from models.enums import ResponseSignals
 from models.project import Project, ProjectModel
@@ -30,15 +29,12 @@ projects_router = APIRouter(prefix="/api/v1/projects", tags=["projects", "v1"])
     response_model_exclude_none=True,
 )
 async def create_project(
-    request: Request,
     project: Optional[ProjectCreationRequest] = None,
     db_session: AsyncSession = Depends(get_session),
 ):
     """
     Creates a new project.
     """
-    settings = request.app.state.settings
-
     project_model = ProjectModel(db_session)
     project_record = await project_model.insert_project(
         Project(**(project.model_dump(exclude_unset=True) if project else {}))
@@ -49,18 +45,6 @@ async def create_project(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"msg": ResponseSignals.PROJECT_CREATION_FAILED.value},
         )
-
-    project_id = project_record.id
-    project_controller = ProjectController(settings)
-    creation_status = project_controller.create_new_project(project_id)
-
-    if not creation_status:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"msg": ResponseSignals.PROJECT_CREATION_FAILED.value},
-        )
-
-    # Success: let response_model handle serialization and aliasing; drop unset/None fields
     return {"value": project_record}
 
 
@@ -82,7 +66,6 @@ async def list_projects(
     project_model = ProjectModel(db_session)
     projects = await project_model.get_projects(skip=skip, limit=limit)
     total = await project_model.count_projects()
-    # Success: return plain data; response_model will serialize
     return {
         "values": projects,
         "count": len(projects),
@@ -110,25 +93,16 @@ async def get_project(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
-    # Success
     return {"value": project}
 
 
 @projects_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
-    project_id: UUID, request: Request, db_session: AsyncSession = Depends(get_session)
+    project_id: UUID, db_session: AsyncSession = Depends(get_session)
 ):
     """
     Deletes a specific project by its ID.
     """
-    settings = request.app.state.settings
     project_model = ProjectModel(db_session)
-    deletion_status = await project_model.delete_project(project_id)
-    if deletion_status:
-        ProjectController(settings).delete_project_folder(project_id)
-    else:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
-        )
+    _ = await project_model.delete_project(project_id)
     return
