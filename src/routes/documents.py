@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from controllers import DocumentController, FileController, VectorController
+from controllers import DocumentController, VectorController
 from dependencies import get_session
 from models.asset import AssetModel
 from models.chunk import DocumentChunk, DocumentChunkModel
@@ -59,18 +59,11 @@ async def process_document(
             content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
         )
 
-    file_controller = FileController(settings)
-    if not file_controller.file_exists(project_id, processing_request.file_id):
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"msg": ResponseSignals.FILE_NOT_FOUND.value},
-        )
-
     asset_model = AssetModel(db_session)
     asset_record = await asset_model.get_asset_by_name(
         project_record.id, processing_request.file_id
     )
-    if asset_record is None:
+    if asset_record is None or not asset_record.file:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
@@ -84,9 +77,11 @@ async def process_document(
 
     document_controller = DocumentController(settings=settings, project_id=project_id)
     chunks = await document_controller.process_file(
-        processing_request.file_id,
-        processing_request.chunk_size,
-        processing_request.chunk_overlap,
+        filename=asset_record.name,
+        data=asset_record.file.data,
+        content_type=asset_record.file.content_type,
+        chunk_size=processing_request.chunk_size,
+        chunk_overlap=processing_request.chunk_overlap,
     )
     if not chunks:
         return JSONResponse(
@@ -163,9 +158,7 @@ async def refresh_project_documents(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
         )
-    assets_info = [(asset.id, asset.name) for asset in assets]
 
-    file_controller = FileController(settings)
     document_controller = DocumentController(
         settings=settings, project_id=project_record.id
     )
@@ -187,18 +180,20 @@ async def refresh_project_documents(
             deleted_count,
         )
     results: Dict[str, Any] = {}
-    for asset_id, asset_name in assets_info:
-        if not file_controller.file_exists(project_id, asset_name):
-            results[asset_name] = {"msg": ResponseSignals.FILE_NOT_FOUND.value}
+    for asset in assets:
+        if not asset.file:
+            results[asset.name] = {"msg": ResponseSignals.FILE_NOT_FOUND.value}
             continue
 
         chunks = await document_controller.process_file(
-            asset_name,
+            filename=asset.name,
+            data=asset.file.data,
+            content_type=asset.file.content_type,
             chunk_size=refresh_request.chunk_size,
             chunk_overlap=refresh_request.chunk_overlap,
         )
         if not chunks:
-            results[asset_name] = {
+            results[asset.name] = {
                 "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value
             }
             continue
@@ -206,7 +201,7 @@ async def refresh_project_documents(
         chunks_objects = [
             DocumentChunk(
                 project_id=project_record.id,
-                asset_id=asset_id,
+                asset_id=asset.id,
                 content=chunk.page_content,
                 metadata_=chunk.metadata,
                 order=idx_,
@@ -215,18 +210,18 @@ async def refresh_project_documents(
         ]
         records = await document_chunk_model.insert_many_chunks(chunks_objects)
         if not records:
-            results[asset_name] = {
+            results[asset.name] = {
                 "msg": ResponseSignals.DOCUMENT_PROCESSING_FAILED.value
             }
             continue
 
         document_controller.logger.info(
             "Document processed successfully: %s (%d chunks)",
-            str(asset_id),
+            str(asset.id),
             len(records),
         )
 
-        results[asset_name] = {
+        results[asset.name] = {
             "values": records,
             "count": len(records),
             "total": len(records),
@@ -286,7 +281,6 @@ async def list_document_chunks(
             content={"msg": ResponseSignals.ASSET_NOT_FOUND.value},
         )
 
-    # Ensure deterministic ordering by chunk order
     chunks = asset_record.document_chunks
     page = chunks[skip : skip + limit]
 
