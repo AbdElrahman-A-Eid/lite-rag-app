@@ -181,6 +181,7 @@ async def upload_files(
     asset_records = await asset_model.insert_many_assets(assets)
 
     file_model = FileModel(db_session)
+    valid_db_files: List[File] = []
     for asset_record, db_file in zip(asset_records, db_files):
         if not asset_record:
             responses.append(
@@ -190,11 +191,13 @@ async def upload_files(
                 }
             )
             continue
-        if asset_record.name == db_file.name:
-            db_file.asset_id = asset_record.id
-    file_records = await file_model.insert_many_files(db_files)
+        db_file.asset_id = asset_record.id
+        valid_db_files.append(db_file)
+    file_records = await file_model.insert_many_files(valid_db_files)
 
-    if not file_records or len(file_records) != len(asset_records):
+    if not file_records or sum(1 for f in file_records if f is not None) != sum(
+        1 for a in asset_records if a is not None
+    ):
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"project_id": project_id, "msgs": responses},
