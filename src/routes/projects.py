@@ -104,5 +104,10 @@ async def delete_project(
     Deletes a specific project by its ID.
     """
     project_model = ProjectModel(db_session)
-    _ = await project_model.delete_project(project_id)
+    deleted = await project_model.delete_project(project_id)
+    if not deleted:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"msg": ResponseSignals.PROJECT_NOT_FOUND.value},
+        )
     return
