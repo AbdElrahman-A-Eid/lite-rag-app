@@ -53,7 +53,7 @@ class DocumentController(BaseController):
             filename (str): The name of the file.
 
         Returns:
-            BaseLoader: The document prser for the specified file type.
+            BaseLoader: The document parser for the specified file type.
         """
         file_type = self._get_file_type(filename)
         if file_type == DocumentFileType.PDF.value:
