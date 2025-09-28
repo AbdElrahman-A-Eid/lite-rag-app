@@ -207,6 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 # Specific to this project
-assets/logs/
-assets/files/
-assets/databases/
+src/assets/logs/
+src/assets/files/
+src/assets/databases/
